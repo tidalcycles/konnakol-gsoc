@@ -1,5 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-import Language.Haskell.TH.Ppr (where_clause)
 -- | BeatCount consists of the three ways in counting a cycle. Dhruta is typically 2 beats, while
 -- Anudhruta is a single beat. The Jati of the Thala defines the Dhruta
 data BeatCount = Laghu | Dhruta | Anudhruta
@@ -13,25 +11,23 @@ data Syllable = Tha | Ki | Ta | Dhi | Gi | Na | Thom | Dhin | Ku | Ri | Ka | Tha
 -- | Define phrase as a collection of syllables
 newtype Phrase = Phrase [Syllable]
 
-
-
 -- | Define a composition following one certain Gati using a 4 - member tuple
 newtype Composition = Composition ([(Phrase, Int)], JatiGati, Thala, JatiGati)
 
 getStringComp::Composition->String
-getStringComp (Composition ([(phr,speed)], jati, thala, gati)) =
-    let maxSpeed = maximum $ map snd [(phr, speed)]
+getStringComp (Composition (k , jati, thala, gati)) =
+    let maxSpeed = maximum $ map snd k
         b = calculateCount jati thala
         countPerAvarta = (2^(maxSpeed - 1)) * b * fromEnum gati
-        a = convToList [(phr, speed)] maxSpeed
-    in show(a)
+        a = convToList k maxSpeed
+    in show a
 getStrinComp _ = show ""
-
 
 convToList :: [(Phrase, Int)] -> Int -> [String]
 convToList [(Phrase x,s)] maxs =
    map (\(x,s)-> concatMap (\t -> if t == Langu || t== Gsc then show t ++ concat (replicate (2^(maxs - s - 1) - 1)  "-") 
    else show t ++ concat(replicate(2^(maxs - s) - 1) "-")) x) [(x,s)]
+convToList _ maxs = [""]
 
 -- instance Basic Check for composition
 
@@ -75,7 +71,7 @@ instance Show BeatCount where
 
 -- | Define display of Thala based on that of the BeatCount
 instance Show Thala where
-    show (Thala [x]) = show x
+    show (Thala []) = show ""
     show (Thala (x:xs)) = show x ++ show (Thala xs)
 
 -- | Standard 7 thalas in the Suladi Sapta Thala system
