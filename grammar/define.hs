@@ -74,8 +74,31 @@ instance Show Phrase where
     show (Phrase []) = ""
     show (Phrase (x:xs)) = show x ++ show (Phrase xs)
 
--- | Define a composition following one certain Gati using a 4 - member tuple
-newtype Composition = Composition ([([Syllable], Int)], JatiGati, Thala, JatiGati)
+-- | Define Composition as collection of phrases with changes in speeds
+data Comp = Composition [([Syllable], Int)] | KalaCh JatiGati 
+
+
+-- | Representing Compositions with changing speeds
+getRepresentation:: [Comp] -> JatiGati ->Thala -> String
+getRepresentation ((KalaCh x):y:xs) jati thala = show "<" ++ show (fromEnum x) ++ show ">" ++
+                                            getStringComp y jati thala (KalaCh x) ++ getRepresentation xs jati thala
+getRepresentation [] _ _  = show ""
+
+-- | Driver function for getting a virtual representation of a composition, after validation
+getStringComp :: Comp->JatiGati->Thala->Comp-> String
+getStringComp (Composition k) jati thala (KalaCh gati) = 
+    let maxS = maximum $ map snd k
+        countPerBeat = getCountPerBeat gati maxS
+        b = calculateCount jati thala
+        countPerAvarta = countPerBeat * b
+        a = convToList k countPerBeat gati
+        d = if mod (length a) countPerBeat == 0 then
+            let c = getThalaSplitPoints jati thala countPerBeat
+                in finalDisp a thala c 0
+            else "Error"
+    in d 
+getStringComp _ _ _ _ = ""
+
 
 -- | Get the Counts per beat in a certain thala in a particular gati
 getCountPerBeat::JatiGati->Int->Int
@@ -84,20 +107,7 @@ getCountPerBeat gati maxS
   | maxS == 1 = 1
   | otherwise = fromEnum gati * 2^ max (maxS-2) 0
 
--- | Driver function for getting a virtual representation of a composition, after validation
-getStringComp::Composition->IO()
-getStringComp (Composition (k , jati, thala, gati)) =
-    let maxS = maximum $ map snd k
-        countPerBeat = getCountPerBeat gati maxS
-        b = calculateCount jati thala
-        countPerAvarta = countPerBeat * b
-        a = convToList k countPerBeat gati
-        d = if mod (length a) countPerAvarta == 0 then
-            let c = getThalaSplitPoints jati thala countPerBeat
-                in finalDisp a thala c 0
-            else "Error"
-    in putStrLn d
-getStrinComp _ = []
+
 
 -- | Method to calculate number of beats in a Thala based on its jati
 getThalaSplitPoints :: JatiGati -> Thala  ->Int-> [Int]
