@@ -1,3 +1,5 @@
+import System.Random
+
 -- | BeatCount consists of the three ways in counting a cycle. Dhruta is typically 2 beats, while
 -- Anudhruta is a single beat. The Jati of the Thala defines the Dhruta
 data BeatCount = Laghu | Dhruta | Anudhruta
@@ -5,14 +7,45 @@ data BeatCount = Laghu | Dhruta | Anudhruta
 -- | Common class to define both the Jati and Gati
 data JatiGati = Tisra | Chaturasra | Khanda | Misra | Sankirna deriving (Show, Eq)
 -- | Define a class for all syllables used in Konnakol
-data Syllable = Tha | Ki | Ta |Di | Dhi | Gi |Jho | Na | Thom |Lan|Gu| Dhin | Ku | Ri | Ka | Tham | Langu | Thak |Dhim | Nam |Mi | Gdot | Gsc deriving ( Eq)
+data Syllable = Tha | Ki | Ta |Di | Dhi | Gi |Jho | Na | Thom |Lan |Gu | Dhin | Ku | Ri | Ka | Tham | Langu | Thak |Dhim | Nam |Mi |Nu| Gdot | Gsc deriving ( Eq)
 
+-- | Define the standard phrases for different lengths
+phrase4len :: Int -> [[Syllable]]
+phrase4len 1 = [[Tha], [Dhi], [Thom], [Nam]]
+phrase4len 2 = [[Tha, Ka], [Ki, Ta], [Dhi, Mi], [Tha, Ri], [Di, Na], [Gi, Na], [Jho, Nu]]
+phrase4len 3 = [[Tha, Ki, Ta], [Tha, Di, Mi], [Tha, Tha, Ka], [Dhi, Na, Ka]]
+phrase4len 4 = [[Ki,Ta, Tha, Ka], [Tha, Ri, Ki, Ta], [Tha, Ka, Di, Na], [Tha, Ka, Dhi, Mi], [Tha, Ka, Jho, Nu], [Tha, Lan, Gdot, Gu],
+                [Gi, Na, Ki, Ta], [Tha, Di, Mi, Tha]]
+phrase4len 5 = [[Tha, Di, Gi, Na, Thom], [Tha, Ka, Tha, Ki, Ta], [Tha, Ka, Tha, Di, Mi], [Tha, Dhi, Mi, Tha, Ka],
+                 [Dhi, Na, Ka, Dhi, Mi],[Tha, Tha, Ka, Dhi, Mi]]
+phrase4len 6 = [Tha, Dhi, Gdot, Gi, Na, Thom] : [ x++ y | x <- phrase4len 2, y <- phrase4len 4] ++
+                [ x++ y | x <- phrase4len 4, y <- phrase4len 2] ++[ x++ y | x <- phrase4len 3, y <- phrase4len 3]
+phrase4len 7 = [Tha, Gdot, Tha, Gdot, Gi, Na, Thom]: [ x++ y | x <- phrase4len 3, y <- phrase4len 4] ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 3]
+                ++ [ x++ y | x <- phrase4len 2, y <- phrase4len 5] ++ [ x++ y | x <- phrase4len 5, y <- phrase4len 2]
+phrase4len 8 = [Tha, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom] : [ x ++ y ++ z | x <- phrase4len 2, y <- phrase4len 3, z <- phrase4len 3]
+                 ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 4] ++ [ x++ y ++z| x <- phrase4len 3, y <- phrase4len 2, z<- phrase4len 3]
+                 ++ [ x++ y ++ z  | x <- phrase4len 3, y <- phrase4len 3, z<-phrase4len 2]
+phrase4len 9 = [Tha, Gdot, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom, Gdot]: [ x++ y | x <- phrase4len 4, y <- phrase4len 5] ++
+             [ x++ y | x <- phrase4len 5, y <- phrase4len 4] ++ [ x++ y ++ z  | x <- phrase4len 3, y <- phrase4len 3, z<-phrase4len 3]
+             ++ [ x++ y ++ z  | x <- phrase4len 2, y <- phrase4len 3, z<-phrase4len 4]
+
+-- | Function to define phrase for phrases of length more than 9
+genPhrase4Me ::Int-> StdGen-> ([Syllable], StdGen)
+genPhrase4Me x gen =
+  if x < 10 then let (y,z) =randomR (0, length(phrase4len x) - 1) gen
+                    in  (phrase4len x !! y, z)
+    else let (a, newgen) = randomR (2, x - 2) gen
+             (b, c) = genPhrase4Me a newgen
+             (d, e) = genPhrase4Me (x - a) c
+            in if a > x - a then (d++b, e) else (b++d, e)
+
+-- | Show instance for syllables, to display the gaps using dots
 instance Show Syllable where
     show Gdot = "."
     show Gsc = ";"
     show Tha = "Tha"
     show Ki = "Ki"
-    show Ta = "ta"
+    show Ta = "Ta"
     show Dhi = "Dhi"
     show Gi = "Gi"
     show Jho = "Jho"
@@ -21,23 +54,25 @@ instance Show Syllable where
     show Lan = "Lan"
     show Gu = "Gu"
     show Dhin = "Dhin"
-    show Ku = "Ku" 
-    show Ri = "Ri" 
+    show Ku = "Ku"
+    show Ri = "Ri"
     show Ka = "Ka"
-    show Tham = "Tham"  
+    show Tham = "Tham"
     show Thak ="Thak"
     show Dhim = "Thak"
     show Nam = "Nam"
     show Mi = "Mi"
+    show Nu = "Nu"
+    show Di = "Di"
     show _ = ""
- 
+
+-- | Define phrase as a collection of syllables, to faciliate show instance
 newtype Phrase = Phrase [Syllable]
 
+-- | Show instance for a phrase
 instance Show Phrase where
     show (Phrase []) = ""
     show (Phrase (x:xs)) = show x ++ show (Phrase xs)
-
-
 
 -- | Define a composition following one certain Gati using a 4 - member tuple
 newtype Composition = Composition ([([Syllable], Int)], JatiGati, Thala, JatiGati)
@@ -55,14 +90,13 @@ getStringComp (Composition (k , jati, thala, gati)) =
     let maxS = maximum $ map snd k
         countPerBeat = getCountPerBeat gati maxS
         b = calculateCount jati thala
-        countPerAvarta = countPerBeat * b 
+        countPerAvarta = countPerBeat * b
         a = convToList k countPerBeat gati
-        d = if mod (length a) countPerAvarta == 0 then 
+        d = if mod (length a) countPerAvarta == 0 then
             let c = getThalaSplitPoints jati thala countPerBeat
                 in finalDisp a thala c 0
             else "Error"
-    in putStrLn
- d
+    in putStrLn d
 getStrinComp _ = []
 
 -- | Method to calculate number of beats in a Thala based on its jati
@@ -87,10 +121,6 @@ finalDisp s (Thala thala) arr n =
     if null s then ""
     else let pos = mod n (length arr)
         in show (Phrase (take (arr !! pos) s)) ++ show (thala!!pos) ++ finalDisp (drop (arr !! pos) s) (Thala thala) arr (n+1)
-
--- instance Basic Check for composition
-
--- further check for copmosition
 
 -- | Convert syllables into equivalent lengths
 toNum::Syllable -> Int
@@ -157,3 +187,19 @@ showFinalThala jati thala gati =
         b = " (" ++ show ( calculateCount jati thala) ++ ")"
         c = " <" ++ show (fromEnum gati )++ ">"
     in a ++ b ++ c
+
+-- | To randomly generate different phrases
+genValues [] t = []
+genValues (x:xs) t =
+    let newgen =  t !! x
+        genPhrase = genPhrase4Me x (mkStdGen newgen)
+    in fst genPhrase:genValues xs (drop x t)
+
+main = do
+    gen <- getStdGen
+    value <- getLine
+    let t = randoms gen :: [Int]
+        x = (read value::[Int])
+        w = show $ genValues x t
+    putStrLn w
+   
