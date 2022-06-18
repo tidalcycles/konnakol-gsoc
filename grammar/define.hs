@@ -75,29 +75,32 @@ instance Show Phrase where
     show (Phrase (x:xs)) = show x ++ show (Phrase xs)
 
 -- | Define Composition as collection of phrases with changes in speeds
-data Comp = Composition [([Syllable], Int)] | KalaCh JatiGati 
+data Comp = Composition [([Syllable], Int)] | KalaCh JatiGati
 
 
 -- | Representing Compositions with changing speeds
-getRepresentation:: [Comp] -> JatiGati ->Thala -> String
-getRepresentation ((KalaCh x):y:xs) jati thala = show "<" ++ show (fromEnum x) ++ show ">" ++
-                                            getStringComp y jati thala (KalaCh x) ++ getRepresentation xs jati thala
-getRepresentation [] _ _  = show ""
+getRepresentation:: [Comp] -> JatiGati ->Thala ->Int->  String
+getRepresentation ((KalaCh x):y:xs) jati thala pos  =
+     let (a,b) = getStringComp y jati thala (KalaCh x) pos
+     in "<" ++ show (fromEnum x) ++ ">" ++ a ++ getRepresentation xs jati thala b
+getRepresentation [] _ _ _ = ""
 
 -- | Driver function for getting a virtual representation of a composition, after validation
-getStringComp :: Comp->JatiGati->Thala->Comp-> String
-getStringComp (Composition k) jati thala (KalaCh gati) = 
+getStringComp :: Comp->JatiGati->Thala->Comp->Int-> (String, Int)
+getStringComp (Composition k) jati (Thala thala) (KalaCh gati) pos =
     let maxS = maximum $ map snd k
         countPerBeat = getCountPerBeat gati maxS
-        b = calculateCount jati thala
+        b = calculateCount jati (Thala thala)
         countPerAvarta = countPerBeat * b
         a = convToList k countPerBeat gati
         d = if mod (length a) countPerBeat == 0 then
-            let c = getThalaSplitPoints jati thala countPerBeat
-                in finalDisp a thala c 0
-            else "Error"
-    in d 
-getStringComp _ _ _ _ = ""
+            let c = replicate (calculateCount jati (Thala thala)) countPerBeat
+                e = getThalaSplitPoints jati (Thala thala) countPerBeat
+                in (finalDisp a (Thala thala) c pos countPerBeat e, pos + div (mod (length a) countPerAvarta) countPerBeat )
+            else ("Error", 0)
+    in d
+getStringComp _ _ _ _ _ = ("",0)
+
 
 
 -- | Get the Counts per beat in a certain thala in a particular gati
@@ -106,16 +109,6 @@ getCountPerBeat gati maxS
   | gati == Chaturasra = 2^(maxS - 1)
   | maxS == 1 = 1
   | otherwise = fromEnum gati * 2^ max (maxS-2) 0
-
-
-
--- | Method to calculate number of beats in a Thala based on its jati
-getThalaSplitPoints :: JatiGati -> Thala  ->Int-> [Int]
-getThalaSplitPoints _ (Thala []) _ = []
-getThalaSplitPoints j (Thala (x:xs)) cPB =
-    case x of Laghu -> cPB*fromEnum j  : getThalaSplitPoints j (Thala xs) cPB
-              Dhruta -> cPB * 2 : getThalaSplitPoints j (Thala xs) cPB
-              Anudhruta ->cPB : getThalaSplitPoints j (Thala xs) cPB
 
 -- | Core function in obtaining string from Composition
 convToList :: [([Syllable], Int)] -> Int ->JatiGati-> [Syllable]
@@ -126,11 +119,22 @@ convToList listas maxs g =
    else t:replicate (div maxs (getCountPerBeat g s) -1) Gdot) x) listas
 
 -- | Final display of a thala in lines with proper subdivisions
-finalDisp :: [Syllable] ->Thala -> [Int] -> Int -> String
-finalDisp s (Thala thala) arr n =
+finalDisp :: [Syllable] ->Thala -> [Int] -> Int ->Int->[String]-> String
+finalDisp s (Thala thala) arr n cPB e =
     if null s then ""
     else let pos = mod n (length arr)
-        in show (Phrase (take (arr !! pos) s)) ++ show (thala!!pos) ++ finalDisp (drop (arr !! pos) s) (Thala thala) arr (n+1)
+             c = e!!pos
+             b = if pos == length arr - 1 then "\n" else ""
+        in show (Phrase (take cPB s)) ++ c++ b ++ finalDisp (drop (arr !! pos) s) (Thala thala) arr (n+1) cPB e
+
+
+-- | Method to calculate number of beats in a Thala based on its jati
+getThalaSplitPoints :: JatiGati -> Thala  ->Int-> [String]
+getThalaSplitPoints _ (Thala []) _ = []
+getThalaSplitPoints j (Thala (x:xs)) cPB =
+    case x of Laghu -> replicate (fromEnum j - 1) "^" ++ [" | "]  ++ getThalaSplitPoints j (Thala xs) cPB
+              Dhruta -> "^":" O ": getThalaSplitPoints j (Thala xs) cPB
+              Anudhruta ->" U " : getThalaSplitPoints j (Thala xs) cPB
 
 -- | Convert syllables into equivalent lengths
 toNum::Syllable -> Int
