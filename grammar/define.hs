@@ -1,11 +1,51 @@
 import System.Random
+import System.CPUTime
 
 -- | BeatCount consists of the three ways in counting a cycle. Dhruta is typically 2 beats, while
 -- Anudhruta is a single beat. The Jati of the Thala defines the Dhruta
-data BeatCount = Laghu | Dhruta | Anudhruta deriving (Read)
+data BeatCount = Laghu | Dhruta | Anudhruta deriving(Read)
+
+-- | Define conventional notation used to represent the Thalas
+instance Show BeatCount where
+    show Laghu = " | "
+    show Dhruta = " O "
+    show Anudhruta = " U "
+
+-- | Thala is a combination of BeatCounts
+newtype Thala = Thala [BeatCount] deriving (Read)
+
+-- | Standard 7 thalas in the Suladi Sapta Thala system
+dhruva = Thala [Laghu, Dhruta, Laghu, Laghu]
+matya = Thala [Laghu, Dhruta, Laghu]
+rupaka = Thala [Dhruta, Laghu]
+jhampe = Thala [Laghu, Dhruta, Anudhruta]
+thriputa = Thala [Laghu, Dhruta, Dhruta]
+atta = Thala [Laghu, Laghu, Dhruta, Dhruta]
+eka = Thala [Laghu]
+
+-- | Define display of Thala based on that of the BeatCount
+instance Show Thala where
+    show (Thala []) = show ""
+    show (Thala (x:xs)) = show x ++ show (Thala xs)
 
 -- | Common class to define both the Jati and Gati
 data JatiGati = Tisra | Chaturasra | Khanda | Misra | Sankirna deriving (Show, Eq, Read)
+
+-- | Define instance of enum class by enumerating each Jati / Gati to be the number of beats they represent
+instance Enum JatiGati where
+    fromEnum a
+        | a == Tisra = 3
+        | a == Chaturasra = 4
+        | a == Khanda = 5
+        | a == Misra = 7
+        | otherwise =  9
+    toEnum a
+        | a == 3 = Tisra
+        | a == 4 = Chaturasra
+        | a == 5 = Khanda
+        | a == 7 = Misra
+        | a == 9 = Sankirna
+        | otherwise = error "Unspecified Length"
 
 -- | Define a class for all syllables used in Konnakol
 data Syllable = Tha | Ki | Ta |Di | Dhi | Gi |Jho | Na | Thom |Lan |Gu | Dhin | Ku | Ri | Ka | Tham | Langu | Thak |Dhim | Nam |Mi |Nu| Gdot | Gsc deriving ( Eq)
@@ -37,8 +77,19 @@ instance Show Syllable where
     show Di = "Di"
     show _ = ""
 
+-- | Convert syllables into equivalent lengths
+toNum::Syllable -> Int
+toNum Langu= 2
+toNum Gsc = 2
+toNum _ = 1
+
 -- | Define phrase as a collection of syllables, to faciliate show instance
 newtype Phrase = Phrase [Syllable]
+
+-- | Convert a phrase into its total length
+toNumP::[Syllable] -> Int
+toNumP [] = 0
+toNumP ((x:xs)) = toNum x + toNumP xs
 
 -- | Show instance for a phrase
 instance Show Phrase where
@@ -48,12 +99,43 @@ instance Show Phrase where
 -- | Define Composition as collection of phrases with changes in speeds
 data Comp = Composition [([Syllable], Int)] | KalaCh JatiGati deriving(Show)
 
+-- | Method to show the Thala in the form Notation - Count - Gati
+showFinalThala :: JatiGati -> Thala -> JatiGati -> String
+showFinalThala jati thala gati =
+    let a = show thala
+        b = " (" ++ show ( calculateCount jati thala) ++ ")"
+        c = " <" ++ show (fromEnum gati )++ ">"
+    in a ++ b ++ c
+
+-- | Get the Counts per beat in a certain thala in a particular gati
+getCountPerBeat::JatiGati->Int->Int
+getCountPerBeat gati maxS
+  | gati == Chaturasra = 2^(maxS - 1)
+  | maxS == 1 = 1
+  | otherwise = fromEnum gati * 2^ max (maxS-2) 0   
+
+-- | Method to calculate number of beats in a Thala based on its jati
+calculateCount :: JatiGati -> Thala -> Int
+calculateCount _ (Thala []) = 0
+calculateCount g (Thala (x:xs)) =
+    case x of Laghu -> fromEnum g + calculateCount g (Thala xs)
+              Dhruta -> 2 + calculateCount g (Thala xs)
+              Anudhruta -> 1 + calculateCount g (Thala xs)
+
+-- | Method to get appropriate symbols for representation
+getThalaSplitPoints :: JatiGati -> Thala  -> [String]
+getThalaSplitPoints _ (Thala [])  = []
+getThalaSplitPoints j (Thala (x:xs))  =
+    case x of Laghu -> [" | "] ++ replicate (fromEnum j - 1) "^" ++ getThalaSplitPoints j (Thala xs)
+              Dhruta -> " O ":" ^ ": getThalaSplitPoints j (Thala xs)
+              Anudhruta ->" U " : getThalaSplitPoints j (Thala xs)
+
 -- | Representing Compositions with changing speeds
-getRepresentation:: [Comp] -> JatiGati ->Thala ->Int->  String
+getRepresentation:: [Comp] -> JatiGati ->Thala ->Int->String
 getRepresentation ((KalaCh x):y:xs) jati thala pos  =
      let (a,b) = getStringComp y jati thala (KalaCh x) pos
      in "<" ++ show (fromEnum x) ++ ">" ++ a ++ getRepresentation xs jati thala b
-getRepresentation [] _ _ _ = ""
+getRepresentation _ _ _ _ = ""
 
 -- | Driver function for getting a virtual representation of a composition, after validation
 getStringComp :: Comp->JatiGati->Thala->Comp->Int-> (String, Int)
@@ -66,18 +148,11 @@ getStringComp (Composition k) jati (Thala thala) (KalaCh gati) pos =
         d =
             -- if mod (length a) countPerBeat == 0 then
             let c = replicate (calculateCount jati (Thala thala)) countPerBeat
-                e = getThalaSplitPoints jati (Thala thala) countPerBeat
+                e = getThalaSplitPoints jati (Thala thala)
                 in (finalDisp a (Thala thala) c pos countPerBeat e, pos + div (mod (length a) countPerAvarta) countPerBeat )
             --else ("Error", 0)
     in d
 getStringComp _ _ _ _ _ = ("",0)
-
--- | Get the Counts per beat in a certain thala in a particular gati
-getCountPerBeat::JatiGati->Int->Int
-getCountPerBeat gati maxS
-  | gati == Chaturasra = 2^(maxS - 1)
-  | maxS == 1 = 1
-  | otherwise = fromEnum gati * 2^ max (maxS-2) 0
 
 -- | Core function in obtaining string from Composition
 convToList :: [([Syllable], Int)] -> Int ->JatiGati-> [Syllable]
@@ -95,87 +170,6 @@ finalDisp s (Thala thala) arr n cPB e =
              c = e!!pos
              b = if pos == length arr - 1 then "||\n" else ""
         in c ++ show (Phrase (take cPB s)) ++ b ++ finalDisp (drop (arr !! pos) s) (Thala thala) arr (n+1) cPB e
-
--- | Method to calculate number of beats in a Thala based on its jati
-getThalaSplitPoints :: JatiGati -> Thala  ->Int-> [String]
-getThalaSplitPoints _ (Thala []) _ = []
-getThalaSplitPoints j (Thala (x:xs)) cPB =
-    case x of Laghu -> [" | "] ++ replicate (fromEnum j - 1) "^" ++ getThalaSplitPoints j (Thala xs) cPB
-              Dhruta -> " O ":" ^ ": getThalaSplitPoints j (Thala xs) cPB
-              Anudhruta ->" U " : getThalaSplitPoints j (Thala xs) cPB
-
--- | Convert syllables into equivalent lengths
-toNum::Syllable -> Int
-toNum Langu= 2
-toNum Gsc = 2
-toNum _ = 1
-
--- | Convert a phrase into its total length
-toNumP::[Syllable] -> Int
-toNumP [] = 0
-toNumP ((x:xs)) = toNum x + toNumP xs
-
--- | Thala is a combination of BeatCounts
-newtype Thala = Thala [BeatCount] deriving (Read)
-
--- | Define instance of enum class by enumerating each Jati / Gati to be the number of beats they represent
-instance Enum JatiGati where
-    fromEnum a
-        | a == Tisra = 3
-        | a == Chaturasra = 4
-        | a == Khanda = 5
-        | a == Misra = 7
-        | otherwise =  9
-    toEnum a
-        | a == 3 = Tisra
-        | a == 4 = Chaturasra
-        | a == 5 = Khanda
-        | a == 7 = Misra
-        | a == 9 = Sankirna
-        | otherwise = error "Unspecified Length"
-
--- | Define conventional notation used to represent the Thalas
-instance Show BeatCount where
-    show Laghu = " | "
-    show Dhruta = " O "
-    show Anudhruta = " U "
-
--- | Define display of Thala based on that of the BeatCount
-instance Show Thala where
-    show (Thala []) = show ""
-    show (Thala (x:xs)) = show x ++ show (Thala xs)
-
--- | Standard 7 thalas in the Suladi Sapta Thala system
-dhruva = Thala [Laghu, Dhruta, Laghu, Laghu]
-matya = Thala [Laghu, Dhruta, Laghu]
-rupaka = Thala [Dhruta, Laghu]
-jhampe = Thala [Laghu, Dhruta, Anudhruta]
-thriputa = Thala [Laghu, Dhruta, Dhruta]
-atta = Thala [Laghu, Laghu, Dhruta, Dhruta]
-eka = Thala [Laghu]
-
--- | Method to calculate number of beats in a Thala based on its jati
-calculateCount :: JatiGati -> Thala -> Int
-calculateCount _ (Thala []) = 0
-calculateCount g (Thala (x:xs)) =
-    case x of Laghu -> fromEnum g + calculateCount g (Thala xs)
-              Dhruta -> 2 + calculateCount g (Thala xs)
-              Anudhruta -> 1 + calculateCount g (Thala xs)
-
--- | Method to show the Thala in the form Notation - Count - Gati
-showFinalThala :: JatiGati -> Thala -> JatiGati -> String
-showFinalThala jati thala gati =
-    let a = show thala
-        b = " (" ++ show ( calculateCount jati thala) ++ ")"
-        c = " <" ++ show (fromEnum gati )++ ">"
-    in a ++ b ++ c
-
--- | To randomly generate different phrases
-genValues [] t = []
-genValues (x:xs) t =
-    let newgen =  t !! x
-        genPhrase = genPhrase4Me x (mkStdGen newgen)
-    in fst genPhrase:genValues xs (drop x t)
 
 -- | Define the standard phrases for different lengths
 phrase4len :: Int -> [[Syllable]]
@@ -200,6 +194,7 @@ phrase4len 9 = [Tha, Gdot, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom, Gdot]: [ x++ y |
 
 -- | Function to randomly select a phrase of a specified length. Defined recursively for phrases
 -- of length greater than 9
+
 phraseGenerator::Int-> StdGen-> ([Syllable], StdGen)
 phraseGenerator x gen =
     if x < 10 then let (y,z) =randomR (0, length(phrase4len x) - 1) gen
@@ -212,14 +207,21 @@ phraseGenerator x gen =
 -- | Function to decide whether the phrase has to be generated with breaks or without them
 genPhrase4Me ::Int-> StdGen-> ([Syllable], StdGen)
 genPhrase4Me x tossgen =
-  let (a,gen) = randomR (1,10000) tossgen ::(Int, StdGen)
-  in if even a||x == 1
+  let (a,gen) = randomR (1,10) tossgen ::(Int, StdGen)
+  in if a <= 4||x == 1
     then phraseGenerator x gen
     else let factor = head (filter (\y->mod x y==0) [2,3..])
 
              (pha, c) = phraseGenerator (div x factor) gen
              b = concatMap (\x->x:replicate (factor - 1) Gdot) pha
         in (b,c)
+
+-- | To randomly generate different phrases
+genValues [] t = []
+genValues (x:xs) t =
+    let newgen =  t !! x
+        genPhrase = genPhrase4Me x (mkStdGen newgen)
+    in fst genPhrase:genValues xs (drop x t)
 
 -- | Define the constant phrase of a Mohra with respect to the given length
 mohrad::JatiGati -> [Syllable]
@@ -262,7 +264,7 @@ genMohra::JatiGati->Thala->JatiGati->StdGen->String
 genMohra jati thala gati gen=
     let sp = getMohraSpeed gati
         phd = mohrad gati
-        overAllCount = if calculateCount jati thala<= (2*length phd) then 2*calculateCount jati thala
+        overAllCount = if calculateCount jati thala<= 4 then 2*calculateCount jati thala
                         else calculateCount jati thala
         [a,b,c,d] = getMohraSeparation (getCountPerBeat gati sp*overAllCount) gati
         (pha, gen1) = genPhrase4Me a gen
@@ -272,11 +274,24 @@ genMohra jati thala gati gen=
         derMohra = concat [pha, phb, pha, phd, pha, phb, pha, phd, pha, phb, pha, c1,pha, c1, pha,c2, c2, c2]
     in getRepresentation [KalaCh gati, Composition [(derMohra, sp)]] jati thala 0
 
+getThala "Dhruva" = dhruva
+getThala "Matya" = matya
+getThala "Eka" = eka
+getThala "Rupaka" = rupaka 
+getThala "Thriputa" = thriputa
+getThala "Atta" = atta
+getThala "Jhampe" = jhampe
+
+
 main = do
+    value1 <- getLine
+    value2 <- getLine 
+    value3 <- getLine
     gen <- getStdGen
-    value <- getLine
-    let t = randoms gen :: [Int]
-        x = (read value::[Int])
-        w = show $ genValues x t
-    putStrLn w
-   
+    let 
+        x = (read value1::JatiGati)
+        y = getThala value2
+        z = (read value3:: JatiGati)
+
+    putStrLn $ genMohra x y z gen
+
