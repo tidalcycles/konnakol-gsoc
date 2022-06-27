@@ -112,7 +112,7 @@ getCountPerBeat::JatiGati->Int->Int
 getCountPerBeat gati maxS
   | gati == Chaturasra = 2^(maxS - 1)
   | maxS == 1 = 1
-  | otherwise = fromEnum gati * 2^ max (maxS-2) 0   
+  | otherwise = fromEnum gati * 2^ max (maxS-2) 0
 
 -- | Method to calculate number of beats in a Thala based on its jati
 calculateCount :: JatiGati -> Thala -> Int
@@ -182,15 +182,15 @@ phrase4len 5 = [[Tha, Di, Gi, Na, Thom], [Tha, Ka, Tha, Ki, Ta], [Tha, Ka, Tha, 
                  [Dhi, Na, Ka, Dhi, Mi],[Tha, Tha, Ka, Dhi, Mi]]
 phrase4len 6 = [Tha, Dhi, Gdot, Gi, Na, Thom] : [ x++ y | x <- phrase4len 2, y <- phrase4len 4] ++
                 [ x++ y | x <- phrase4len 4, y <- phrase4len 2] ++[ x++ y | x <- phrase4len 3, y <- phrase4len 3]
-phrase4len 7 = [Tha, Gdot, Tha, Gdot, Gi, Na, Thom]: [ x++ y | x <- phrase4len 3, y <- phrase4len 4] ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 3]
+phrase4len 7 = [Tha, Gdot, Dhi, Gdot, Gi, Na, Thom]: [ x++ y | x <- phrase4len 3, y <- phrase4len 4] ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 3]
                 ++ [ x++ y | x <- phrase4len 2, y <- phrase4len 5] ++ [ x++ y | x <- phrase4len 5, y <- phrase4len 2]
 phrase4len 8 = [[Tha, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom], [Tha, Ka, Tham, Gdot, Tha, Ri, Ki, Ta],[Dhi,Gsc, Gdot, Tham, Gdot, Tha, Ka], [Dhi, Ku, Tha, Ri, Ki, Ta, Tha, Ka]] ++ [ x ++ y ++ z | x <- phrase4len 2, y <- phrase4len 3, z <- phrase4len 3]
                  ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 4] ++ [ x++ y ++z| x <- phrase4len 3, y <- phrase4len 2, z<- phrase4len 3]
                  ++ [ x++ y ++ z  | x <- phrase4len 3, y <- phrase4len 3, z<-phrase4len 2]
-phrase4len 9 = [Tha, Gdot, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom, Gdot]: [ x++ y | x <- phrase4len 4, y <- phrase4len 5] ++
+phrase4len 9 = [Tha, Gdot, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom]: [ x++ y | x <- phrase4len 4, y <- phrase4len 5] ++
              [ x++ y | x <- phrase4len 5, y <- phrase4len 4] ++ [ x++ y ++ z  | x <- phrase4len 3, y <- phrase4len 3, z<-phrase4len 3]
              ++ [ x++ y ++ z  | x <- phrase4len 2, y <- phrase4len 3, z<-phrase4len 4]
-
+phrase4len _ = [[]]
 
 -- | Function to randomly select a phrase of a specified length. Defined recursively for phrases
 -- of length greater than 9
@@ -208,7 +208,7 @@ phraseGenerator x gen =
 genPhrase4Me ::Int-> StdGen-> ([Syllable], StdGen)
 genPhrase4Me x tossgen =
   let (a,gen) = randomR (1,10) tossgen ::(Int, StdGen)
-  in if a <= 4||x == 1
+  in if a <= 7||x == 1
     then phraseGenerator x gen
     else let factor = head (filter (\y->mod x y==0) [2,3..])
 
@@ -274,24 +274,75 @@ genMohra jati thala gati gen=
         derMohra = concat [pha, phb, pha, phd, pha, phb, pha, phd, pha, phb, pha, c1,pha, c1, pha,c2, c2, c2]
     in getRepresentation [KalaCh gati, Composition [(derMohra, sp)]] jati thala 0
 
+-- To read the thala from user input
+getThala :: String->Thala
 getThala "Dhruva" = dhruva
 getThala "Matya" = matya
 getThala "Eka" = eka
-getThala "Rupaka" = rupaka 
+getThala "Rupaka" = rupaka
 getThala "Thriputa" = thriputa
 getThala "Atta" = atta
 getThala "Jhampe" = jhampe
 
+-- To generate the purvardha for a given length for the Korvai
+getPurvardha::Int->StdGen->([Syllable], StdGen)
+getPurvardha sum gen =
+    let vals1 = [(x,d, g) | x <- [1,2..sum] , d<- [0, 1..8], g<-[0,1..8], 3*x + 3*d + 3*g== sum]
+        vals2 = [(x,d, g) | x <- [1,2..sum] , d<- [-1,-2..(-8)], g<-[0,1..8], 3*x + 3*d + 3*g == sum && x + d >0 && x + 2*d >0]
+        vals = vals1 ++ vals2
+        ((pos, gen1), ind) = if null vals then
+            let val = [(x,d,g) | x<- [1,2..sum], d<-[1,2..4],g<-[0,1..8], x + x *d + x*d*d + 3*g == sum]
+                in (randomR (0,length val - 1 ) gen :: (Int, StdGen), 1)
+                else (randomR (0,length vals - 1 ) gen :: (Int, StdGen), 0)
+        (x,d, g) = if ind == 0 then vals!!pos else [(x,d,g) | x<- [1,2..sum], d<-[1,2..4],g<-[0,1..8], x + x *d + x*d*d + 3*g == sum]!!pos
+        l2 = if ind == 0 then x + d  else x*d
+        l3 = if ind == 0 then x + 2 *d else x * d * d
+        (phr1, gen2) = genPhrase4Me x gen1
+        (phr2, gen3) = genPhrase4Me l2 gen2
+        (phr3, gen4) = genPhrase4Me l3 gen3
+        phr4 = if g==0 then [] else Dhi:replicate (g - 1) Gdot
+    in (phr1 ++ phr4 ++ phr2  ++ phr4 ++ phr3  ++ phr4, gen)
+
+-- To generate an Uttarardha which has a fixed structure
+getUttar :: Int-> [Syllable]
+getUttar len =
+    let factor = head (filter (\y->mod (len - 2 * y) 3==0 && (len - 2*y) <= 30) [0,1..])
+        gapPhrase = if factor == 0  then [] else Dhin:replicate (factor - 1) Gdot
+        lenphrase = div (len - 2*factor) 3
+        mainPhrase = head (phrase4len lenphrase)
+    in mainPhrase ++ gapPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase
+
+-- To generate an Uttarardha which has a varying structure
+getUttarVarying :: Int -> [Syllable]
+getUttarVarying len =
+    let factor = head (filter (\y->mod (len - 2 * y) 6==0 && (len - 2*y) <= 30 ) [1..])
+        gapPhrase = if factor == 0  then [] else Dhin:replicate (factor - 1) Gdot
+        lenphrase = div (len - 2*factor) 6
+        mainPhrase = head (phrase4len lenphrase)
+    in mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase
+
+-- Core function to generate a desired Korvai
+genKorvai::JatiGati -> Thala -> JatiGati -> StdGen -> String
+genKorvai jati thala gati gen=
+    let sp = getMohraSpeed gati
+        overallCount = let a = if gati == Chaturasra then 1 else 2 in a * calculateCount jati thala*getCountPerBeat gati sp
+        (totPur, gen1) = randomR (overallCount - 40, overallCount - 15) gen :: (Int, StdGen)
+        totUtt = overallCount -  totPur
+        (purva, gen2) =let a = if gati == Chaturasra then 2 else 1 in getPurvardha (a *totPur) gen1
+        uttara = let a = if gati == Chaturasra then 1 else 0 in concatMap (\x->x:replicate a Gdot) (if even totUtt && totUtt >=32 then getUttarVarying totUtt else getUttar totUtt)
+        in getRepresentation [KalaCh gati, Composition [(purva++uttara, sp)]] jati thala 0
 
 main = do
     value1 <- getLine
-    value2 <- getLine 
+    value2 <- getLine
     value3 <- getLine
+    value4 <- getLine
     gen <- getStdGen
-    let 
+    let
         x = (read value1::JatiGati)
         y = getThala value2
         z = (read value3:: JatiGati)
-
-    putStrLn $ genMohra x y z gen
+        ch = (read value4 :: Int)
+        w = if ch == 1 then genKorvai x y z gen else genMohra x y z gen
+    putStrLn w
 
