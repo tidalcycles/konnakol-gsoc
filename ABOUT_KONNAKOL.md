@@ -54,6 +54,18 @@ The structure of the Mohra is such that if one begins the Mohra at the beginning
 
 Another point to note is that this is a conventional structure followed for the Mohra. There are Mohras which might not entirely satisfy this structure, but will still be accepted. However, this standard is followed most of the time.
 
+## Korvai 
+
+The _Korvai_/ _Mukhthaya_ is another fundamental structure is Carnatic Classical music which is also performed during the end of a solo section. In general the size of a Korvai is said to be of length $2^n$ _avartaas_, where n is a natural number (in most cases, it is restricted to 4, or atmost 8 _avartaas_). There are two kinds of Korvais, depending on the number of divisions into which the composition is divided. 
+
+In the first kind, the _Korvai_ is divided into two structures : the Purvardha, and the Uttarardha. In the second kind, there is no particular division into the Purvardha and the Uttarardha, and the entire composition may be treated as a single unit. We shall discuss the first (and the more conventionally followed) kind in greater detail.
+
+The _Purvardha_ is usually constructed using a set of numbers which follows some sequence in between them. This set of numbers could be a constant set (like [7, 7, 7]), or it can be a set which follows some arithmetic or geometric progression (like [2, 4, 6], or [2, 4, 8], or [7, 4, 1]). In the constant case, the norm is that the sequence has exactly three elements. However, in the other cases, one shall have a sequence as long as they would like (but the norm is still a sequence of size 3). One also has the option to intersperse these sequences with a phrase of a constant length.
+
+The _Uttarardha_ is the second half of the _Korvai_, and is usually comprised of phrases such as _Tha Di Gi Na Thom_. These phrases are either repeated thrice, interspersed with pauses, or the number of times they are repeated increases each time. Even in this case, they can be interspersed with pauses. Here, the final syllable of the final phrase shall land exactly on the last count of the _avarta_.
+
+One option that has been explored greatly with the Korvai (and upto an extent, with the Mohra), is that of changing _Gatis_. Within a composition, one can vary the gati so as to improve the complexity as well as the aesthetics. 
+
 ## Resources
 
 To read more about Konnakol, one can refer the following research papers:
