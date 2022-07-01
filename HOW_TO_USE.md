@@ -11,6 +11,7 @@ The new datatypes defined in the code are as follows:
 * **Phrase**: This has been defined as a list of syllables. The main purpose here is to define a show method for this function, so as to facilitate a neat display of a composition. This also has a function toNumP, which helps represent a phrase by its equivalent count.
 * **Comp** : This type is a unit in representing a composition, which will be list of Comp. There are two possible types this type can take. The first one is _Composition_, which is an array of tuples, where each tuple contains a list of syllables and an integer denoting the speed, and the second is _Kalach_, which denotes the gati in which this shall the respective _Composition_ is. 
 * **UIComp**: This datatype is for enabling the users to enter compositions as numbers. They can enter a phrase as well as a gap as a list of two member tuples, the first indicating the phrase, and the second the speed. They can also enter a change in gati.
+* **JustNums**:  This datatype is for the user to input a Korvai as just numbers without having to enter the Speeds. It has three types, a phrase, a Gap, or a section break.
 
 ## Functions
 
@@ -39,4 +40,7 @@ The new datatypes defined in the code are as follows:
 * **genComp** : This takes a list of UIComp, and converts each list into equivalent phrases, and joins them into one single datatype of the king [Comp].
 * **concatPhGp** : This takes a composition and joing any two "Composition" dataypes into one, so that one may be able to call getRepresentation.
 * **findString** : This is just a helper function which allows us to check for a substring within a string.
-* **compValidator**: This is a function which takes a User Input of numbers, along with the jati and the thala, and then first generates the composition using genComp and the concatPhGp functions. Then, if there is no error in the composition it displays the composition.
+* **compValidator** : This is a function which takes a User Input of numbers, along with the jati and the thala, and then first generates the composition using genComp and the concatPhGp functions. Then, if there is no error in the composition it displays the composition.
+* **groupPhs** : This method simplifies a Korvai to the maximum extent - a sequence of phrases and gaps, which can then be analysed.
+* **getNums** : This function converts a simplified korvai from groupPhs to just numbers. Phrases, gaps and breaks are represented using just numbers.
+* **validateKorvai** :  This function is used to validate a korvai entered as a list of JustNums. This function first gets the numerical representation of the functions using groupPhs and getNums, and then checks whether the output is a valid Korvai.
