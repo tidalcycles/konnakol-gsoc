@@ -203,7 +203,6 @@ phrase4len _ =[]
 
 -- | Function to randomly select a phrase of a specified length. Defined recursively for phrases
 -- of length greater than 9
-
 phraseGenerator::Int-> StdGen-> ([Syllable], StdGen)
 phraseGenerator x gen =
     if x < 10|| x==16 then let (y,z) =randomR (0, length(phrase4len x) - 1) gen
@@ -216,7 +215,7 @@ phraseGenerator x gen =
 -- | Function to decide whether the phrase has to be generated with breaks or without them
 genPhrase4Me ::Int-> StdGen-> ([Syllable], StdGen)
 genPhrase4Me x tossgen =
-    if x == 0 then ([], tossgen) else 
+    if x == 0 then ([], tossgen) else
   let (a,gen) = randomR (1,10) tossgen ::(Int, StdGen)
   in if a <= 8||x == 1
         then phraseGenerator x gen
@@ -294,7 +293,7 @@ genMohra jati thala gati gen=
         c2 = mohraC2 gati
         derMohra = concat [pham, phbm, pham, phd, pham, phbm, pham, phd, pham, phbm, pham, c1,pham, c1, pham,c2]
     in getRepresentation [KalaCh gati, Composition [(derMohra, sp)]] jati thala 0
-    
+
 -- | To read the thala from user input
 getThala :: String->Thala
 getThala "Dhruva" = dhruva
@@ -308,19 +307,17 @@ getThala "Jhampe" = jhampe
 -- | To generate the purvardha for a given length for the Korvai
 getPurvardha::Int->StdGen->([Syllable], StdGen)
 getPurvardha sum gen =
-    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2..(div sum 4)], g<- [2,3,4,5], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==sum]
+    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2..(div sum 4)], g<- [2,3..8], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==sum]
         vals2 = map (\(a,b) -> (reverse a,b)) vals1
-        vals3 = [([x,x,x], g) | x<- [1,2..(div sum 3)], g<-[0,2,3,4,5], 3*x + 3*g == sum]
+        vals3 = [([x,x,x], g) | x<- [1,2..(div sum 3)], g<- 0:[2,3..8], 3*x + 3*g == sum]
         vals4 = [(map (\k -> x*d^k) [0,1..(n-1)], g) | x <- [1,2..(div sum 3)] , d <- [2,3,4,5], g <- [0,2,3,4,5], n <- [3,4,5], x*(div (d^n - 1) (d -1)) + n*g == sum ]
         vals = vals1 ++ vals2 ++ vals3 ++ vals4
         (pos, gen2 ) = randomR (0, length vals - 1) gen :: (Int, StdGen)
-        (phs, gp) = vals !! pos
-        (ph1, newgen) = 
-            if phs!!1 < head phs then 
-                genValues phs gen2
-            else 
-            let (a,b) = genValues (reverse phs) gen2
-            in (reverse a, b)
+        (phs, gp) = if null vals then ([sum],0) else vals !! pos
+        (ph1, newgen)
+          | minimum phs > 15 = (map (\ x -> fst (getPurvardha x gen2)) phs, gen)
+          | phs !! 1 < head phs = genValues phs gen2
+          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b)
         ph4
           | gp==0 = []
           | gp <=3 = Dhi:replicate (gp - 1) Gdot
@@ -333,7 +330,7 @@ getPurvardha sum gen =
 -- | To generate an Uttarardha which has a fixed structure
 getUttar :: Int-> [Syllable]
 getUttar len =
-    let factor = head (filter (\y->mod (len - 2 * y) 3==0 && (len - 2*y) <= 27) [0,2,3,4,5,6,7,8])
+    let factor = head (filter (\y->mod (len - 2 * y) 3==0 && (len - 2*y) <= 27) (0:[2,3..8]))
         gapPhrase = if factor == 0  then [] else Dhin:replicate (factor - 1) Gdot
         lenphrase = div (len - 2*factor) 3
         mainPhrase = head (phrase4len lenphrase)
@@ -342,23 +339,25 @@ getUttar len =
 -- | To generate an Uttarardha which has a varying structure
 getUttarVarying :: Int -> [Syllable]
 getUttarVarying len =
-    let factor = head (filter (\y->mod (len - 2 * y) 6==0 && (len - 2*y) <= 54 && (len - 2*y) >= 30) [0,2,3,4,5,6,7,8])
+    let factor = head (filter (\y->mod (len - 2 * y) 6==0 && ((len - 2*y) <= 54 || mod (len - 2*y) 9 ==0) && (len - 2*y) >= 30) [1,2,3,4,5,6,7,8])
         gapPhrase = if factor == 0  then [] else Dhin:replicate (factor - 1) Gdot
-        lenphrase = div (len - 2*factor) 6
+        lenphrase = if (len -2*factor) <= 54 then div (len - 2*factor) 6 else div (len - 2*factor) 9
         mainPhrase = head (phrase4len lenphrase)
-    in mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase
+    in if len - 2*factor <=54 then mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase
+        else mainPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++mainPhrase ++ mainPhrase ++ mainPhrase
 
 -- | Core function to generate a desired Korvai
 genKorvai::JatiGati -> Thala -> JatiGati -> StdGen -> String
 genKorvai jati thala gati gen=
-    let sp = if gati ==Tisra then getMohraSpeed gati -1 else getMohraSpeed gati
+    let sp = getMohraSpeed gati -1
         avarta = calculateCount jati thala*getCountPerBeat gati sp
-        counts = if avarta < 35 then 2* avarta else avarta
-        overallCount = let a = if gati == Chaturasra then 1 else 2 in a * counts
-        (totPur, gen1) = randomR (overallCount - 40 , overallCount - 15) gen :: (Int, StdGen)
+        counts = if avarta < 50 then 2* avarta else avarta
+        overallCount = 2* counts
+        (totPur', gen1) = randomR (div (overallCount - 50) 2, div (overallCount - 15) 2) gen :: (Int, StdGen)
+        totPur = totPur' * 2
         totUtt = overallCount -  totPur
-        (purva, gen2) =let a = if gati == Chaturasra then 2 else 1 in getPurvardha (a *totPur) gen1
-        uttara = let a = if gati == Chaturasra then 1 else 0 in concatMap (\x->x:replicate a Gdot) (if even totUtt && totUtt >=32 then getUttarVarying totUtt else getUttar totUtt)
+        (purva, gen2) =getPurvardha totPur gen1
+        uttara = if even totUtt && totUtt >=32 then getUttarVarying totUtt else getUttar totUtt
         in getRepresentation [KalaCh gati, Composition [(purva++uttara, sp)]] jati thala 0
 
 -- | New datatype for users to input compositions as numbers
@@ -393,20 +392,6 @@ compValidator comp jati thala gen =
         stringedcomp = getRepresentation actcomp jati thala 0
         valComp = if findString "Error" stringedcomp == Nothing then stringedcomp else "Error"
     in valComp
-
-main = do
-    value1 <- getLine
-    value2 <- getLine
-    value3 <- getLine
-    value4 <- getLine
-    gen <- getStdGen
-    let
-        x = (read value1::JatiGati)
-        y = getThala value2
-        z = (read value3:: JatiGati)
-        ch = (read value4 :: Int)
-        w =  if ch==1 then genKorvai x y z gen else genMohra x y z gen
-    putStrLn w
 
 -- | Datatype for users to enter values for Korvais
 data JustNums = P Int | G Int| B deriving(Show)
@@ -454,9 +439,22 @@ validateKorvai arr jati thala gati =
         bool3 = mod totsum avarta == 0
     in bool1 && bool2 && bool3
 
+main = do
+    value1 <- getLine
+    value2 <- getLine
+    value3 <- getLine
+    value4 <- getLine
+    gen <- getStdGen
+    let
+        x = (read value1::JatiGati)
+        y = getThala value2
+        z = (read value3:: JatiGati)
+        ch = (read value4 :: Int)
+        w =  if ch==1 then genKorvai x y z gen else genMohra x y z gen
+    putStrLn w
+
+
 -- Next on the list
--- Introduce more complexity in Korvai's which will also help in validations
--- Add documentation EVERYWHERE
 -- Start the exciting diagrams journey
 
 -- Different gatis in Korvai ? Future Plan
