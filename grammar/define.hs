@@ -1,5 +1,11 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use isNothing" #-}
+{-# HLINT ignore "Use first" #-}
 import System.Random
-import System.CPUTime
+import Data.List
+    ( findIndex, intercalate, intersperse, isPrefixOf, tails )
+import System.CPUTime ()
 
 -- | BeatCount consists of the three ways in counting a cycle. Dhruta is typically 2 beats, while
 -- Anudhruta is a single beat. The Jati of the Thala defines the Dhruta
@@ -52,7 +58,7 @@ data Syllable = Tha | Ki | Ta |Di | Dhi | Gi |Jho | Na | Thom |Lan |Gu | Dhin | 
 
 -- | Show instance for syllables, to display the gaps using dots
 instance Show Syllable where
-    show Gdot = "."
+    show Gdot = "-"
     show Gsc = ";"
     show Tha = "Tha"
     show Ki = "Ki"
@@ -135,7 +141,7 @@ getRepresentation:: [Comp] -> JatiGati ->Thala ->Int->String
 getRepresentation ((KalaCh x):y:xs) jati thala pos  =
      let (a,b) = getStringComp y jati thala (KalaCh x) pos
      in "<" ++ show (fromEnum x) ++ ">" ++ a ++ getRepresentation xs jati thala b
-getRepresentation _ _ _ _ = ""
+getRepresentation _ _ _ b =""
 
 -- | Driver function for getting a virtual representation of a composition, after validation
 getStringComp :: Comp->JatiGati->Thala->Comp->Int-> (String, Int)
@@ -146,11 +152,11 @@ getStringComp (Composition k) jati (Thala thala) (KalaCh gati) pos =
         countPerAvarta = countPerBeat * b
         a = convToList k countPerBeat gati
         d =
-            -- if mod (length a) countPerBeat == 0 then
+         --if mod (length a) countPerBeat == 0 then
             let c = replicate (calculateCount jati (Thala thala)) countPerBeat
                 e = getThalaSplitPoints jati (Thala thala)
                 in (finalDisp a (Thala thala) c pos countPerBeat e, pos + div (mod (length a) countPerAvarta) countPerBeat )
-            --else ("Error", 0)
+         --else ("Error", 0)
     in d
 getStringComp _ _ _ _ _ = ("",0)
 
@@ -184,20 +190,22 @@ phrase4len 6 = [Tha, Dhi, Gdot, Gi, Na, Thom] : [ x++ y | x <- phrase4len 2, y <
                 [ x++ y | x <- phrase4len 4, y <- phrase4len 2] ++[ x++ y | x <- phrase4len 3, y <- phrase4len 3]
 phrase4len 7 = [Tha, Gdot, Dhi, Gdot, Gi, Na, Thom]: [ x++ y | x <- phrase4len 3, y <- phrase4len 4] ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 3]
                 ++ [ x++ y | x <- phrase4len 2, y <- phrase4len 5] ++ [ x++ y | x <- phrase4len 5, y <- phrase4len 2]
-phrase4len 8 = [[Tha, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom], [Tha, Ka, Tham, Gdot, Tha, Ri, Ki, Ta],[Dhi,Gsc, Gdot, Tham, Gdot, Tha, Ka], [Dhi, Ku, Tha, Ri, Ki, Ta, Tha, Ka]] ++ [ x ++ y ++ z | x <- phrase4len 2, y <- phrase4len 3, z <- phrase4len 3]
+phrase4len 8 = [[Tha, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom], [Tha, Ka, Tham, Gdot, Tha, Ri, Ki, Ta],[Dhi,Gsc, Gdot, Tham, Gdot, Tha, Ka], [Dhi, Ku, Tha, Ri, Ki, Ta, Tha, Ka],[Tha,Gdot, Dhi, Gdot, Tha, Gdot, Ki, Ta]]++ [ x ++ y ++ z | x <- phrase4len 2, y <- phrase4len 3, z <- phrase4len 3]
                  ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 4] ++ [ x++ y ++z| x <- phrase4len 3, y <- phrase4len 2, z<- phrase4len 3]
                  ++ [ x++ y ++ z  | x <- phrase4len 3, y <- phrase4len 3, z<-phrase4len 2]
 phrase4len 9 = [Tha, Gdot, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom]: [ x++ y | x <- phrase4len 4, y <- phrase4len 5] ++
              [ x++ y | x <- phrase4len 5, y <- phrase4len 4] ++ [ x++ y ++ z  | x <- phrase4len 3, y <- phrase4len 3, z<-phrase4len 3]
              ++ [ x++ y ++ z  | x <- phrase4len 2, y <- phrase4len 3, z<-phrase4len 4]
-phrase4len _ = [[]]
+-- phrase4len n = concat[ [ x ++ y | x <-phrase4len i, y<-phrase4len (n- i)]|i <- [2,3..(n -2)] ]
+phrase4len 16 = [[Dhi, Gdot,Gdot, Gdot, Tham, Gdot, Tha, Ka, Dhi, Ku, Tha, Ri, Ki, Ta, Tha, Ka],
+                    [Tha, Ka, Thom, Gdot, Tham, Gdot, Tha, Ka, Dhi, Ku, Tha, Ri, Ki, Ta, Tha, Ka]]
+phrase4len _ =[]
 
 -- | Function to randomly select a phrase of a specified length. Defined recursively for phrases
 -- of length greater than 9
-
 phraseGenerator::Int-> StdGen-> ([Syllable], StdGen)
 phraseGenerator x gen =
-    if x < 10 then let (y,z) =randomR (0, length(phrase4len x) - 1) gen
+    if x < 10|| x==16 then let (y,z) =randomR (0, length(phrase4len x) - 1) gen
                     in  (phrase4len x !! y, z)
         else let (a, newgen) = randomR (2, x - 2) gen
                  (b, c) = genPhrase4Me a newgen
@@ -207,50 +215,60 @@ phraseGenerator x gen =
 -- | Function to decide whether the phrase has to be generated with breaks or without them
 genPhrase4Me ::Int-> StdGen-> ([Syllable], StdGen)
 genPhrase4Me x tossgen =
+    if x == 0 then ([], tossgen) else
   let (a,gen) = randomR (1,10) tossgen ::(Int, StdGen)
-  in if a <= 7||x == 1
-    then phraseGenerator x gen
+  in if a <= 8||x == 1
+        then phraseGenerator x gen
     else let factor = head (filter (\y->mod x y==0) [2,3..])
-
-             (pha, c) = phraseGenerator (div x factor) gen
-             b = concatMap (\x->x:replicate (factor - 1) Gdot) pha
-        in (b,c)
+             (one, two) = if factor >=4 then let (y, newgen) = randomR (2, x-2) gen
+                                                 (b, c) = genPhrase4Me y newgen
+                                                 (d, e) = genPhrase4Me (x - y) c
+                                        in if y > x - y then (d ++ b, e) else (b ++ d, e)
+                        else let (pha, c) = phraseGenerator (div x factor) gen
+                                 b = concatMap (\x->x:replicate (factor - 1) Gdot) pha
+                            in (b,c)
+        in (one, two)
 
 -- | To randomly generate different phrases
-genValues [] t = []
-genValues (x:xs) t =
-    let newgen =  t !! x
-        genPhrase = genPhrase4Me x (mkStdGen newgen)
-    in fst genPhrase:genValues xs (drop x t)
+genValues :: [Int] -> StdGen -> ([[Syllable]], StdGen)
+genValues [] gen = ([], gen)
+genValues [x] gen =
+    let (a,b) = genPhrase4Me x gen
+        in ([a],b)
+genValues (x:xs) gen =
+    let (a,newgen) = genValues xs gen
+        exLength = if null xs then 0 else head xs
+        (b, newgen2) = genPhrase4Me (x - exLength) newgen
+    in ((b++head a) :a, newgen2)
 
 -- | Define the constant phrase of a Mohra with respect to the given length
 mohrad::JatiGati -> [Syllable]
 mohrad Tisra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot,Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot]
 mohrad Chaturasra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Tha, Lan, Gdot,Gu, Dhin, Gdot, Gdot, Gdot]
-mohrad Khanda = [Tha, Lan, Gdot, Gu, Dhin, Tha, Lan, Gdot, Gu, Dhin]
+mohrad Khanda = [Tha, Lan, Gdot, Gu, Dhin,Gdot,  Thak, Gdot, Dhin, Gdot, Tha, Lan, Gdot, Gu, Dhin, Gdot,Thak, Gdot, Dhin, Gdot]
 mohrad Misra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak,Gdot, Tha, Lan, Gdot,Gu, Dhin, Gdot ]
 mohrad Sankirna = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Tha, Lan, Gdot, Gu, Dhin, Gdot, Dhin, Gdot, Gdot, Gdot]
 
 -- | Define one of the final constants used in the Mohra
 mohraC1 Chaturasra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Gdot, Gdot]
 mohraC1 Tisra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot]
-mohraC1 Khanda = [Tha, Lan, Gdot, Gu, Dhin]
+mohraC1 Khanda = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot]
 mohraC1 Misra = [Tha, Lan, Gdot, Gu, Dhin,Gdot, Gdot]
 mohraC1 Sankirna = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Gdot, Gdot, Gdot]
 
 -- | Define the constant used to end the Mohra
-mohraC2 Tisra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot, Gu, Gdot]
-mohraC2 Chaturasra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot]
-mohraC2 Khanda = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Gdot, Gdot ]
-mohraC2 Misra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot]
-mohraC2 Sankirna = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot, Gu, Gdot]
+mohraC2 Tisra = concat (replicate 3 [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot, Gu, Gdot]) ++ replicate 6 Gdot
+mohraC2 Chaturasra =concat (replicate 3 [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot]) ++ replicate 4 Gdot
+mohraC2 Khanda = concat( replicate 3 [Tha, Lan, Gdot, Gu, Dhin, Gdot,Thak, Gdot, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gu, Gdot]) ++ [Gdot, Gdot]
+mohraC2 Misra = concat (replicate 3 [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot]) ++ replicate 5 Gdot
+mohraC2 Sankirna = concat (replicate 3 [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot, Gu, Gdot]) ++ replicate 3 Gdot
 
 -- | To obtain the right speed for generation of Mohra with respect to its gati/ nadai
 getMohraSpeed::JatiGati->Int
 getMohraSpeed gati
     | gati == Chaturasra = 4
     | gati == Tisra = 4
-    | otherwise = 2
+    | otherwise = 3
 
 -- | To get the appropriate separations for a required mohra generation
 getMohraSeparation::Int->JatiGati->[Int]
@@ -267,14 +285,16 @@ genMohra jati thala gati gen=
         overAllCount = if calculateCount jati thala<= 4 then 2*calculateCount jati thala
                         else calculateCount jati thala
         [a,b,c,d] = getMohraSeparation (getCountPerBeat gati sp*overAllCount) gati
-        (pha, gen1) = genPhrase4Me a gen
-        (phb, gen2 ) = genPhrase4Me b gen1
+        (pha, gen1) = if gati==Chaturasra || gati == Misra || gati == Sankirna then genPhrase4Me a gen else genPhrase4Me (div a 2) gen
+        pham = if gati == Chaturasra || gati == Misra || gati == Sankirna then pha else intersperse Gdot pha ++ [Gdot]
+        (phb, gen2 ) = if gati==Chaturasra || gati == Misra || gati == Sankirna then genPhrase4Me b gen else genPhrase4Me (div b 2) gen
+        phbm = if gati == Chaturasra || gati == Misra || gati == Sankirna then phb else intersperse Gdot phb ++ [Gdot]
         c1 = mohraC1 gati
         c2 = mohraC2 gati
-        derMohra = concat [pha, phb, pha, phd, pha, phb, pha, phd, pha, phb, pha, c1,pha, c1, pha,c2, c2, c2]
+        derMohra = concat [pham, phbm, pham, phd, pham, phbm, pham, phd, pham, phbm, pham, c1,pham, c1, pham,c2]
     in getRepresentation [KalaCh gati, Composition [(derMohra, sp)]] jati thala 0
 
--- To read the thala from user input
+-- | To read the thala from user input
 getThala :: String->Thala
 getThala "Dhruva" = dhruva
 getThala "Matya" = matya
@@ -284,53 +304,140 @@ getThala "Thriputa" = thriputa
 getThala "Atta" = atta
 getThala "Jhampe" = jhampe
 
--- To generate the purvardha for a given length for the Korvai
+-- | To generate the purvardha for a given length for the Korvai
 getPurvardha::Int->StdGen->([Syllable], StdGen)
 getPurvardha sum gen =
-    let vals1 = [(x,d, g) | x <- [1,2..sum] , d<- [0, 1..8], g<-[0,1..8], 3*x + 3*d + 3*g== sum]
-        vals2 = [(x,d, g) | x <- [1,2..sum] , d<- [-1,-2..(-8)], g<-[0,1..8], 3*x + 3*d + 3*g == sum && x + d >0 && x + 2*d >0]
-        vals = vals1 ++ vals2
-        ((pos, gen1), ind) = if null vals then
-            let val = [(x,d,g) | x<- [1,2..sum], d<-[1,2..4],g<-[0,1..8], x + x *d + x*d*d + 3*g == sum]
-                in (randomR (0,length val - 1 ) gen :: (Int, StdGen), 1)
-                else (randomR (0,length vals - 1 ) gen :: (Int, StdGen), 0)
-        (x,d, g) = if ind == 0 then vals!!pos else [(x,d,g) | x<- [1,2..sum], d<-[1,2..4],g<-[0,1..8], x + x *d + x*d*d + 3*g == sum]!!pos
-        l2 = if ind == 0 then x + d  else x*d
-        l3 = if ind == 0 then x + 2 *d else x * d * d
-        (phr1, gen2) = genPhrase4Me x gen1
-        (phr2, gen3) = genPhrase4Me l2 gen2
-        (phr3, gen4) = genPhrase4Me l3 gen3
-        phr4 = if g==0 then [] else Dhi:replicate (g - 1) Gdot
-    in (phr1 ++ phr4 ++ phr2  ++ phr4 ++ phr3  ++ phr4, gen)
+    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2..(div sum 4)], g<- [2,3..8], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==sum]
+        vals2 = map (\(a,b) -> (reverse a,b)) vals1
+        vals3 = [([x,x,x], g) | x<- [1,2..(div sum 3)], g<- 0:[2,3..8], 3*x + 3*g == sum]
+        vals4 = [(map (\k -> x*d^k) [0,1..(n-1)], g) | x <- [1,2..(div sum 3)] , d <- [2,3,4,5], g <- [0,2,3,4,5], n <- [3,4,5], x*(div (d^n - 1) (d -1)) + n*g == sum ]
+        vals = vals1 ++ vals2 ++ vals3 ++ vals4
+        (pos, gen2 ) = randomR (0, length vals - 1) gen :: (Int, StdGen)
+        (phs, gp) = if null vals then ([sum],0) else vals !! pos
+        (ph1, newgen)
+          | minimum phs > 15 = (map (\ x -> fst (getPurvardha x gen2)) phs, gen)
+          | phs !! 1 < head phs = genValues phs gen2
+          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b)
+        ph4
+          | gp==0 = []
+          | gp <=3 = Dhi:replicate (gp - 1) Gdot
+          | otherwise = let factor = head (filter (\y->mod gp y==0) [2,3..])
+                            b = concatMap (\x->x:replicate (factor - 1) Gdot) (replicate (div gp factor) Dhi)
+                               in b
+        finPh = intercalate ph4 ph1
+    in (finPh ++ ph4, newgen)
 
--- To generate an Uttarardha which has a fixed structure
+-- | To generate an Uttarardha which has a fixed structure
 getUttar :: Int-> [Syllable]
 getUttar len =
-    let factor = head (filter (\y->mod (len - 2 * y) 3==0 && (len - 2*y) <= 30) [0,1..])
+    let factor = head (filter (\y->mod (len - 2 * y) 3==0 && (len - 2*y) <= 27) (0:[2,3..8]))
         gapPhrase = if factor == 0  then [] else Dhin:replicate (factor - 1) Gdot
         lenphrase = div (len - 2*factor) 3
         mainPhrase = head (phrase4len lenphrase)
     in mainPhrase ++ gapPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase
 
--- To generate an Uttarardha which has a varying structure
+-- | To generate an Uttarardha which has a varying structure
 getUttarVarying :: Int -> [Syllable]
 getUttarVarying len =
-    let factor = head (filter (\y->mod (len - 2 * y) 6==0 && (len - 2*y) <= 30 ) [1..])
+    let factor = head (filter (\y->mod (len - 2 * y) 6==0 && ((len - 2*y) <= 54 || mod (len - 2*y) 9 ==0) && (len - 2*y) >= 30) [1,2,3,4,5,6,7,8])
         gapPhrase = if factor == 0  then [] else Dhin:replicate (factor - 1) Gdot
-        lenphrase = div (len - 2*factor) 6
+        lenphrase = if (len -2*factor) <= 54 then div (len - 2*factor) 6 else div (len - 2*factor) 9
         mainPhrase = head (phrase4len lenphrase)
-    in mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase
+    in if len - 2*factor <=54 then mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase
+        else mainPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++mainPhrase ++ mainPhrase ++ mainPhrase
 
--- Core function to generate a desired Korvai
+-- | Core function to generate a desired Korvai
 genKorvai::JatiGati -> Thala -> JatiGati -> StdGen -> String
 genKorvai jati thala gati gen=
-    let sp = getMohraSpeed gati
-        overallCount = let a = if gati == Chaturasra then 1 else 2 in a * calculateCount jati thala*getCountPerBeat gati sp
-        (totPur, gen1) = randomR (overallCount - 40, overallCount - 15) gen :: (Int, StdGen)
+    let sp = getMohraSpeed gati -1
+        avarta = calculateCount jati thala*getCountPerBeat gati sp
+        counts = if avarta < 50 then 2* avarta else avarta
+        overallCount = 2* counts
+        (totPur', gen1) = randomR (div (overallCount - 50) 2, div (overallCount - 15) 2) gen :: (Int, StdGen)
+        totPur = totPur' * 2
         totUtt = overallCount -  totPur
-        (purva, gen2) =let a = if gati == Chaturasra then 2 else 1 in getPurvardha (a *totPur) gen1
-        uttara = let a = if gati == Chaturasra then 1 else 0 in concatMap (\x->x:replicate a Gdot) (if even totUtt && totUtt >=32 then getUttarVarying totUtt else getUttar totUtt)
+        (purva, gen2) =getPurvardha totPur gen1
+        uttara = if even totUtt && totUtt >=32 then getUttarVarying totUtt else getUttar totUtt
         in getRepresentation [KalaCh gati, Composition [(purva++uttara, sp)]] jati thala 0
+
+-- | New datatype for users to input compositions as numbers
+data UIComp = Ph [(Int, Int)] | Gp [(Int, Int)] | Tc JatiGati
+
+-- | Method to convert compositions into a format which can be used by getRepresentation
+concatPhGp :: [Comp] -> [Comp]
+concatPhGp ((Composition a):(Composition b):t) = concatPhGp (Composition (a ++ b) : t)
+concatPhGp (x: t) = x: concatPhGp t
+concatPhGp [] = []
+
+-- | Method to generate phrases for a composition
+genComp::[UIComp] -> JatiGati -> Thala ->StdGen -> [Comp]
+genComp ((Tc x):y ) jati thala gen =KalaCh x:genComp y jati thala gen
+genComp ((Ph t:y)) jati thala gen =
+    let b = foldl (\(acc, gen1) (p,q) -> ((fst (genPhrase4Me p gen),q):acc, snd(genPhrase4Me p gen))) ([], gen) t
+        a = fst b
+        in Composition a:genComp y jati thala (snd b)
+genComp ((Gp t: y)) jati thala gen =
+    let a  = map(\(p,q) -> (Dhi:replicate (p - 1) Gdot,q)) t
+        in Composition a: genComp y jati thala gen
+genComp [] _ _ _  = []
+
+-- | Helper function to check for substring
+findString :: (Eq a) => [a] -> [a] -> Maybe Int
+findString search str = findIndex (isPrefixOf search) (tails str)
+
+-- | Core function which validates a string and prints if valid
+compValidator :: [UIComp] -> JatiGati -> Thala -> StdGen -> String
+compValidator comp jati thala gen =
+    let actcomp = concatPhGp $ genComp comp jati thala gen
+        stringedcomp = getRepresentation actcomp jati thala 0
+        valComp = if findString "Error" stringedcomp == Nothing then stringedcomp else "Error"
+    in valComp
+
+-- | Datatype for users to enter values for Korvais
+data JustNums = P Int | G Int| B deriving(Show)
+
+-- | Simplify Korvais to the maximum extent
+groupPhs::[JustNums] -> [JustNums]
+groupPhs [] = []
+groupPhs (P a:P b:xs) = groupPhs (P (a+b): xs)
+groupPhs (G a:G b: xs) = groupPhs ( G (a + b) : xs)
+groupPhs (G a:B : xs) = groupPhs(G a:xs)
+groupPhs (x:xs) = x:groupPhs xs
+
+-- | To convert a simplified Korvai to its numerical equivalent
+getNums::[JustNums]->[Int]
+getNums [] = []
+getNums ((P a):xs) = a:getNums xs
+getNums ((G a) : xs) = a:getNums xs
+getNums (B:xs) = 0:getNums xs
+
+-- | Validate the second half of the Korvai
+validateUttar :: [Int]  -> Bool
+validateUttar arr =
+    let a = head arr
+        b = arr !! 2
+        c = arr !! 4
+    in (arr!! 1 == arr !!3) && ((c - b) == (b -  a)) && (a<=10 || mod a 3 ==0) && (b<=10 || mod b 3 == 0) && (c <= 10 || mod c 3 ==0)
+
+-- | Validate the overall Korvai
+validateKorvai :: [JustNums] -> JatiGati -> Thala -> JatiGati-> Bool
+validateKorvai arr jati thala gati =
+    let narr = getNums $ groupPhs arr
+        totsum = sum narr
+        nrev = reverse narr
+        bool1 = validateUttar nrev
+        npur = reverse $ drop 5 nrev
+        pursum = sum npur
+        vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div pursum 3)], d <- [2..(div pursum 4)], g<- [2,3,4,5], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d == pursum]
+        vals2 = map (\(a,b) -> (reverse a,b)) vals1
+        vals3 = [([x,x,x], g) | x<- [1,2..(div pursum 3)], g<-[0,2,3,4,5], 3*x + 3*g == pursum]
+        vals4 = [(map (\k -> x*d^k) [0,1..(n-1)], g) | x <- [1,2..(div pursum 3)] , d <- [2,3,4,5], g <- [0,2,3,4,5], n <- [3,4,5], x*(div (d^n - 1) (d -1)) + n*g == pursum ]
+        vals = map (\(l, g) -> intersperse g l ++ [g]) (vals1 ++ vals2 ++ vals3 ++ vals4)
+        bool2 = elem npur vals
+        sp = if gati ==Tisra then getMohraSpeed gati -1 else getMohraSpeed gati
+        avarta = calculateCount jati thala*getCountPerBeat gati sp
+        bool3 = mod totsum avarta == 0
+    in bool1 && bool2 && bool3
 
 main = do
     value1 <- getLine
@@ -343,6 +450,11 @@ main = do
         y = getThala value2
         z = (read value3:: JatiGati)
         ch = (read value4 :: Int)
-        w = if ch == 1 then genKorvai x y z gen else genMohra x y z gen
+        w =  if ch==1 then genKorvai x y z gen else genMohra x y z gen
     putStrLn w
 
+
+-- Next on the list
+-- Start the exciting diagrams journey
+
+-- Different gatis in Korvai ? Future Plan
