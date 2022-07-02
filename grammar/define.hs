@@ -31,7 +31,7 @@ eka = Thala [Laghu]
 
 -- | Define display of Thala based on that of the BeatCount
 instance Show Thala where
-    show (Thala []) = show ""
+    show (Thala []) = ""
     show (Thala (x:xs)) = show x ++ show (Thala xs)
 
 -- | Common class to define both the Jati and Gati
@@ -285,10 +285,10 @@ genMohra jati thala gati gen=
         overAllCount = if calculateCount jati thala<= 4 then 2*calculateCount jati thala
                         else calculateCount jati thala
         [a,b,c,d] = getMohraSeparation (getCountPerBeat gati sp*overAllCount) gati
-        (pha, gen1) = if gati==Chaturasra || gati == Misra || gati == Sankirna then genPhrase4Me a gen else genPhrase4Me (div a 2) gen
-        pham = if gati == Chaturasra || gati == Misra || gati == Sankirna then pha else intersperse Gdot pha ++ [Gdot]
-        (phb, gen2 ) = if gati==Chaturasra || gati == Misra || gati == Sankirna then genPhrase4Me b gen else genPhrase4Me (div b 2) gen
-        phbm = if gati == Chaturasra || gati == Misra || gati == Sankirna then phb else intersperse Gdot phb ++ [Gdot]
+        (pha, gen1) = if gati==Chaturasra || gati == Misra || gati == Sankirna|| mod a 2 ==1 then genPhrase4Me a gen else genPhrase4Me (div a 2) gen
+        pham = if gati == Chaturasra || gati == Misra || gati == Sankirna|| mod a 2 == 1 then pha else intersperse Gdot pha ++ [Gdot]
+        (phb, gen2 ) = if gati==Chaturasra || gati == Misra || gati == Sankirna || mod a 2 == 1 then genPhrase4Me b gen else genPhrase4Me (div b 2) gen
+        phbm = if gati == Chaturasra || gati == Misra || gati == Sankirna || mod a 2 == 1 then phb else intersperse Gdot phb ++ [Gdot]
         c1 = mohraC1 gati
         c2 = mohraC2 gati
         derMohra = concat [pham, phbm, pham, phd, pham, phbm, pham, phd, pham, phbm, pham, c1,pham, c1, pham,c2]
