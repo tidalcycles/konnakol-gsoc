@@ -76,12 +76,12 @@ instance Show Syllable where
     show Ka = "Ka"
     show Tham = "Tham"
     show Thak ="Thak"
-    show Dhim = "Thak"
+    show Dhim = "Dhim"
     show Nam = "Nam"
     show Mi = "Mi"
     show Nu = "Nu"
     show Di = "Di"
-    show _ = ""
+    show _ = " "
 
 -- | Convert syllables into equivalent lengths
 toNum::Syllable -> Int
@@ -190,7 +190,7 @@ phrase4len 6 = [Tha, Dhi, Gdot, Gi, Na, Thom] : [ x++ y | x <- phrase4len 2, y <
                 [ x++ y | x <- phrase4len 4, y <- phrase4len 2] ++[ x++ y | x <- phrase4len 3, y <- phrase4len 3]
 phrase4len 7 = [Tha, Gdot, Dhi, Gdot, Gi, Na, Thom]: [ x++ y | x <- phrase4len 3, y <- phrase4len 4] ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 3]
                 ++ [ x++ y | x <- phrase4len 2, y <- phrase4len 5] ++ [ x++ y | x <- phrase4len 5, y <- phrase4len 2]
-phrase4len 8 = [[Tha, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom], [Tha, Ka, Tham, Gdot, Tha, Ri, Ki, Ta],[Dhi,Gsc, Gdot, Tham, Gdot, Tha, Ka], [Dhi, Ku, Tha, Ri, Ki, Ta, Tha, Ka],[Tha,Gdot, Dhi, Gdot, Tha, Gdot, Ki, Ta]]++ [ x ++ y ++ z | x <- phrase4len 2, y <- phrase4len 3, z <- phrase4len 3]
+phrase4len 8 = [[Tha, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom], [Tha, Ka, Tham, Gdot, Tha, Ri, Ki, Ta],[Dhi,Gdot, Gdot, Gdot, Tham, Gdot, Tha, Ka], [Dhi, Ku, Tha, Ri, Ki, Ta, Tha, Ka],[Tha,Gdot, Dhi, Gdot, Tha, Gdot, Ki, Ta]]++ [ x ++ y ++ z | x <- phrase4len 2, y <- phrase4len 3, z <- phrase4len 3]
                  ++ [ x++ y | x <- phrase4len 4, y <- phrase4len 4] ++ [ x++ y ++z| x <- phrase4len 3, y <- phrase4len 2, z<- phrase4len 3]
                  ++ [ x++ y ++ z  | x <- phrase4len 3, y <- phrase4len 3, z<-phrase4len 2]
 phrase4len 9 = [Tha, Gdot, Dhi, Gdot, Gi, Gdot, Na, Gdot, Thom]: [ x++ y | x <- phrase4len 4, y <- phrase4len 5] ++
@@ -307,7 +307,7 @@ getThala "Jhampe" = jhampe
 -- | To generate the purvardha for a given length for the Korvai
 getPurvardha::Int->StdGen->([Syllable], StdGen)
 getPurvardha sum gen =
-    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2..(div sum 4)], g<- [2,3..8], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==sum]
+    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2..(div sum 4)], g<- 0:[2,3..8], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==sum]
         vals2 = map (\(a,b) -> (reverse a,b)) vals1
         vals3 = [([x,x,x], g) | x<- [1,2..(div sum 3)], g<- 0:[2,3..8], 3*x + 3*g == sum]
         vals4 = [(map (\k -> x*d^k) [0,1..(n-1)], g) | x <- [1,2..(div sum 3)] , d <- [2,3,4,5], g <- [0,2,3,4,5], n <- [3,4,5], x*(div (d^n - 1) (d -1)) + n*g == sum ]
@@ -315,7 +315,7 @@ getPurvardha sum gen =
         (pos, gen2 ) = randomR (0, length vals - 1) gen :: (Int, StdGen)
         (phs, gp) = if null vals then ([sum],0) else vals !! pos
         (ph1, newgen)
-          | minimum phs > 15 = (map (\ x -> fst (getPurvardha x gen2)) phs, gen)
+          | minimum phs > 15  = (map (\ x -> fst (getPurvardha x gen2)) phs, gen)
           | phs !! 1 < head phs = genValues phs gen2
           | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b)
         ph4
