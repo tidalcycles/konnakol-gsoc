@@ -1,0 +1,7 @@
+cabal-version:      2.4
+name:               diagrams-tutorial
+version:            0.1.0.0
+executable diagrams-tutorial
+    main-is:          DiagramsTutorial.hs
+    build-depends:    base, diagrams-lib, diagrams-svg, split, colour
+    default-language: Haskell2010
