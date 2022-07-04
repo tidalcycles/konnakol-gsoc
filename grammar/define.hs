@@ -2,6 +2,9 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use isNothing" #-}
 {-# HLINT ignore "Use first" #-}
+
+module Define where
+
 import System.Random
 import Data.List
     ( findIndex, intercalate, intersperse, isPrefixOf, tails )
