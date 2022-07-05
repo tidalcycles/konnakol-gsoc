@@ -307,61 +307,99 @@ getThala "Thriputa" = thriputa
 getThala "Atta" = atta
 getThala "Jhampe" = jhampe
 
+toJustNums = map P
+
+getGPh :: Int -> [Syllable]
+getGPh 0 = []
+getGPh 1 = [Dhi]
+getGPh 2 = [Dhin, Gdot]
+getGPh 3 = [Dhin, Gdot, Gu]
+getGPh 4 = [Dhin, Gdot, Dhin, Gdot]
+getGPh 5 = getGPh 2 ++ getGPh 3
+getGPh 6 = concat $ replicate 2 (getGPh 3)
+getGPh 7 = getGPh 4 ++ getGPh 3
+getGPh 8 = getGPh 3 ++ getGPh 5
+
+-- composing a smaller subpattern for a Korvai without the extra gap
+getSub:: Int-> StdGen -> ([Syllable], [JustNums])
+getSub sum gen =
+    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2,3..8], g<- 0:[2,3..8], n <-[3,4, 5], n*x + (n-1)*g + (div (n*(n-1)) 2) *d ==sum]
+        vals2 = map (\(a,b) -> (reverse a,b)) vals1
+        vals = vals1 ++ vals2
+        (pos, gen2 ) = randomR (0, length vals - 1) gen :: (Int, StdGen)
+        (phs, gp) = if null vals then ([sum],0) else vals !! pos
+        (ph1, newgen, nList)
+          | minimum phs > 15  =
+             let fl = map (`getSub` gen2) phs
+                 fl1 = map fst  fl
+                 fl3 = map snd fl
+            in (fl1, gen, fl3)
+          | phs !! 1 < head phs =let (a,b) = genValues phs gen2 in (a,b,map (\x -> toJustNums [x]) phs)
+          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b, map (\x -> toJustNums [x]) phs)
+        ph4 = getGPh gp
+        gpNums = [G gp | gp /= 0]
+        finPh = intercalate ph4 ph1
+        finJustNums = intercalate gpNums nList
+    in (finPh , finJustNums )
+
 -- | To generate the purvardha for a given length for the Korvai
-getPurvardha::Int->StdGen->([Syllable], StdGen)
+getPurvardha::Int->StdGen->([Syllable], StdGen, [JustNums])
 getPurvardha sum gen =
-    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2..(div sum 4)], g<- 0:[2,3..8], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==sum]
+    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2,3..8], g<- [2,3..8], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==sum]
         vals2 = map (\(a,b) -> (reverse a,b)) vals1
         vals3 = [([x,x,x], g) | x<- [1,2..(div sum 3)], g<- 0:[2,3..8], 3*x + 3*g == sum]
         vals4 = [(map (\k -> x*d^k) [0,1..(n-1)], g) | x <- [1,2..(div sum 3)] , d <- [2,3,4,5], g <- [0,2,3,4,5], n <- [3,4,5], x*(div (d^n - 1) (d -1)) + n*g == sum ]
         vals = vals1 ++ vals2 ++ vals3 ++ vals4
         (pos, gen2 ) = randomR (0, length vals - 1) gen :: (Int, StdGen)
         (phs, gp) = if null vals then ([sum],0) else vals !! pos
-        (ph1, newgen)
-          | minimum phs > 15  = (map (\ x -> fst (getPurvardha x gen2)) phs, gen)
-          | phs !! 1 < head phs = genValues phs gen2
-          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b)
-        ph4
-          | gp==0 = []
-          | gp <=3 = Dhi:replicate (gp - 1) Gdot
-          | otherwise = let factor = head (filter (\y->mod gp y==0) [2,3..])
-                            b = concatMap (\x->x:replicate (factor - 1) Gdot) (replicate (div gp factor) Dhi)
-                               in b
+        (ph1, newgen, nList)
+          | minimum phs > 15  =
+             let fl = map (`getSub` gen2) phs
+                 fl1 = map fst  fl
+                 fl3 = map snd fl
+            in (fl1, gen, fl3)
+          | phs !! 1 < head phs =let (a,b) = genValues phs gen2 in (a,b,map (\x -> toJustNums [x]) phs)
+          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b, map (\x -> toJustNums [x]) phs)
+        ph4 = getGPh gp
+        gpNums = [G gp | gp /= 0]
         finPh = intercalate ph4 ph1
-    in (finPh ++ ph4, newgen)
+        finJustNums = intercalate gpNums nList
+    in (finPh ++ ph4, newgen, finJustNums ++ gpNums)
 
 -- | To generate an Uttarardha which has a fixed structure
-getUttar :: Int-> [Syllable]
+getUttar :: Int-> ([Syllable], [JustNums])
 getUttar len =
     let factor = head (filter (\y->mod (len - 2 * y) 3==0 && (len - 2*y) <= 27) (0:[2,3..8]))
         gapPhrase = if factor == 0  then [] else Dhin:replicate (factor - 1) Gdot
         lenphrase = div (len - 2*factor) 3
         mainPhrase = head (phrase4len lenphrase)
-    in mainPhrase ++ gapPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase
+    in (mainPhrase ++ gapPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase, [P lenphrase, G factor, P lenphrase, G factor, P lenphrase])
 
 -- | To generate an Uttarardha which has a varying structure
-getUttarVarying :: Int -> [Syllable]
+getUttarVarying :: Int -> ([Syllable], [JustNums])
 getUttarVarying len =
     let factor = head (filter (\y->mod (len - 2 * y) 6==0 && ((len - 2*y) <= 54 || mod (len - 2*y) 9 ==0) && (len - 2*y) >= 30) [1,2,3,4,5,6,7,8])
         gapPhrase = if factor == 0  then [] else Dhin:replicate (factor - 1) Gdot
         lenphrase = if (len -2*factor) <= 54 then div (len - 2*factor) 6 else div (len - 2*factor) 9
         mainPhrase = head (phrase4len lenphrase)
-    in if len - 2*factor <=54 then mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase
-        else mainPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++mainPhrase ++ mainPhrase ++ mainPhrase
+    in if len - 2*factor <=54 then (mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase,
+                                        [P lenphrase, G factor, P lenphrase, P lenphrase, G factor, P lenphrase, P lenphrase, P lenphrase ])
+        else (mainPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++ mainPhrase ++ mainPhrase ++ mainPhrase ++ gapPhrase ++mainPhrase ++ mainPhrase ++ mainPhrase,
+            [P lenphrase, P lenphrase, P lenphrase, G factor, P lenphrase, P lenphrase, P lenphrase, G factor, P lenphrase, P lenphrase, P lenphrase ])
 
 -- | Core function to generate a desired Korvai
-genKorvai::JatiGati -> Thala -> JatiGati -> StdGen -> String
+genKorvai::JatiGati -> Thala -> JatiGati -> StdGen -> (String, [JustNums])
 genKorvai jati thala gati gen=
     let sp = getMohraSpeed gati -1
         avarta = calculateCount jati thala*getCountPerBeat gati sp
-        counts = if avarta < 50 then 2* avarta else avarta
+        counts = if avarta < 50 then 4* avarta else avarta
         overallCount = 2* counts
         (totPur', gen1) = randomR (div (overallCount - 50) 2, div (overallCount - 15) 2) gen :: (Int, StdGen)
         totPur = totPur' * 2
         totUtt = overallCount -  totPur
-        (purva, gen2) =getPurvardha totPur gen1
-        uttara = if even totUtt && totUtt >=32 then getUttarVarying totUtt else getUttar totUtt
-        in getRepresentation [KalaCh gati, Composition [(purva++uttara, sp)]] jati thala 0
+        (purva, gen2, nList) =getPurvardha totPur gen1
+        (uttara, nList2) = if even totUtt && totUtt >=32 then getUttarVarying totUtt else getUttar totUtt
+        in (getRepresentation [KalaCh gati, Composition [(purva++uttara, sp)]] jati thala 0,  nList ++ nList2)
 
 -- | New datatype for users to input compositions as numbers
 data UIComp = Ph [(Int, Int)] | Gp [(Int, Int)] | Tc JatiGati
@@ -453,11 +491,9 @@ main = do
         y = getThala value2
         z = (read value3:: JatiGati)
         ch = (read value4 :: Int)
-        w =  if ch==1 then genKorvai x y z gen else genMohra x y z gen
+        w =  if ch==1 then fst (genKorvai x y z gen) else genMohra x y z gen
     putStrLn w
 
 
 -- Next on the list
--- Start the exciting diagrams journey
-
 -- Different gatis in Korvai ? Future Plan
