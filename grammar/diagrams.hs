@@ -99,7 +99,7 @@ gridKonM x = lattice
       lattice = vcat grids
 
 main1 = mainWith $ pictureKorvai Chaturasra thriputa Chaturasra (mkStdGen 758)
-main = main2
+main = main1
 
 main3 = mainWith $pictureMohra Chaturasra thriputa Chaturasra
 main2 = mainWith $ gridKon $ toColors [P 5,G 6, P 5, G 6, P 5, G 6, P 5,G 4, P 5, G 4, P 5, G 4, P 5,G 2, P 5, G 2, P 5, G 2,
