@@ -307,7 +307,7 @@ getThala "Thriputa" = thriputa
 getThala "Atta" = atta
 getThala "Jhampe" = jhampe
 
-toJustNums = map P
+
 
 getGPh :: Int -> [Syllable]
 getGPh 0 = []
@@ -334,8 +334,8 @@ getSub sum gen =
                  fl1 = map fst  fl
                  fl3 = map snd fl
             in (fl1, gen, fl3)
-          | phs !! 1 < head phs =let (a,b) = genValues phs gen2 in (a,b,map (\x -> toJustNums [x]) phs)
-          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b, map (\x -> toJustNums [x]) phs)
+          | phs !! 1 < head phs =let (a,b) = genValues phs gen2 in (a,b,map (\x -> map P [x]) phs)
+          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b, map (\x ->map P [x]) phs)
         ph4 = getGPh gp
         gpNums = [G gp | gp /= 0]
         finPh = intercalate ph4 ph1
@@ -358,8 +358,8 @@ getPurvardha sum gen =
                  fl1 = map fst  fl
                  fl3 = map snd fl
             in (fl1, gen, fl3)
-          | phs !! 1 < head phs =let (a,b) = genValues phs gen2 in (a,b,map (\x -> toJustNums [x]) phs)
-          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b, map (\x -> toJustNums [x]) phs)
+          | phs !! 1 < head phs =let (a,b) = genValues phs gen2 in (a,b,map (\x -> map P [x]) phs)
+          | otherwise = let (a, b) = genValues (reverse phs) gen2 in (reverse a, b, map (\x -> map P [x]) phs)
         ph4 = getGPh gp
         gpNums = [G gp | gp /= 0]
         finPh = intercalate ph4 ph1
