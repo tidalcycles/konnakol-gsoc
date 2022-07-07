@@ -16,9 +16,9 @@ data BeatCount = Laghu | Dhruta | Anudhruta deriving(Read)
 
 -- | Define conventional notation used to represent the Thalas
 instance Show BeatCount where
-    show Laghu = " | "
-    show Dhruta = " O "
-    show Anudhruta = " U "
+    show Laghu = "|"
+    show Dhruta = "O"
+    show Anudhruta = "U"
 
 -- | Thala is a combination of BeatCounts
 newtype Thala = Thala [BeatCount] deriving (Read)
