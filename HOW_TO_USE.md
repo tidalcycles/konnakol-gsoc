@@ -49,6 +49,8 @@ The new datatypes defined in the code are as follows:
  
 * **sepToSingles** : This function takes a list of JustNums and converts each Phrase/ Gap of a particular length (say n) into n units with increasing/decreasing values between 0 and 1/-1. This is to facilitate a gradient in the grid generated. Phrases are converted into decreasing gradients of red, while gaps are converted into increasing gradients of blue.
 * **toColors** : This function takes a list of JustNums along with an integer denoting the size of an avarta. It calls sepToSingles on the list and then breaks that list into subsets of the size of the integer.
+* **getLabels**: This function takes the thala, the jati and the count per beat to construct the header string for visualizations.
+* **visNums** : This function is to visualize a given list of JustNums along with the jati, thala, gati and the speed using toColors, getLabels, and gridKon.
 * **pictureKorvai** : This is the core function in order to generate grid for Korvai. Here, one calls the genKorvai function on the required jati, thala and gati, and used the list of JustNums returned to form the image.
 * **getSquares** : This function takes a single double value and converts it into the square of the required size with the assigned colour.
 * **gridKon* : This function generates the grid for the Korvai, by calling getSquares for each row.
