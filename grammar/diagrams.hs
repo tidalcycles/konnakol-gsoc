@@ -1,11 +1,9 @@
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE TypeFamilies              #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-import Diagrams.Prelude
-    ( lw, thin, centerXY, fc, hcat, vcat, rect, (#), Diagram, none )
-import Diagrams.Backend.SVG.CmdLine ( mainWith, B )
+import Diagrams.Prelude hiding (P)
+import Diagrams.Backend.SVG.CmdLine
 import Data.List.Split ( chunksOf )
 import Data.Colour.SRGB.Linear ( rgb )
 import qualified Data.Data as Data.Typeable.Internal
@@ -122,8 +120,10 @@ gridKonM x s = lattice
       lattice = vcat [labels, vcat grids]
 
 main1 = mainWith $ pictureKorvai Chaturasra thriputa Chaturasra (mkStdGen 758)
-main = main3
+main = main4
 
+
+main4 = mainWith $ pictureKorvaiC Chaturasra thriputa Chaturasra (mkStdGen 758)
 main3 = mainWith $pictureMohra Chaturasra thriputa Chaturasra
 main2 = mainWith $ visNums [P 7, G 4, P 7, G 4, P 7, G 4, P 6, G 4, P 6, G 4, P 6, G 4,
                                                 P 5, G 4, P 5, G 4, P 5, G 4,P 4, G 4, P 4, G 4, P 4, G 4,
@@ -132,4 +132,57 @@ main2 = mainWith $ visNums [P 7, G 4, P 7, G 4, P 7, G 4, P 6, G 4, P 6, G 4, P 
                                                 G 4, P 1, G 4, P 1, G 3, P 1, G 4, P 1 , G 4, P 1] Chaturasra thriputa Chaturasra 3
 
 
+-- | To create a sector with the size based on the element's index and the total array size
+createSector :: Double->Double->Double-> Diagram B
+createSector val ind n = annularWedge 1 0.6 d a # fc col
+   where
+     d :: Direction V2 Double
+     d = rotateBy (ind/n) xDir
+     a :: Angle Double
+     a = (2*pi/n) @@ rad
+     col = getCols val
+
+-- | To convert the given set of values to the circular diagram
+getSectors :: [Double] -> Diagram B
+getSectors x = lattice
+    where
+        lattice = mconcat $ map (\i -> createSector (x!!i) (fromIntegral i) (fromIntegral (length x))) [0,1..(length x - 1)]
+
+-- | To take a given list of JustNums and to obtain the circular diagram
+compToCircle :: [JustNums] -> JatiGati-> Thala ->JatiGati-> Int -> Diagram B
+compToCircle arr jati thala gati sp =
+    let c = getCountPerBeat gati sp
+        avarta =  c * calculateCount jati thala
+    in getSectors (toColors' arr avarta)
+
+-- | To visualize the Korvai as a circle instead of grids
+pictureKorvaiC :: JatiGati -> Thala -> JatiGati -> StdGen ->Diagram B
+pictureKorvaiC jati thala gati gen =
+    let (_,korvai) = genKorvai jati thala gati gen
+        sp = getMohraSpeed gati -1
+        avarta = calculateCount jati thala*getCountPerBeat gati sp
+        counts = if avarta < 50 then 4* avarta else avarta
+        overallCount = 2* counts
+        colors = toColors' korvai avarta
+    in getSectors colors
+
+-- | Splitting a set of numbers into subsets based on the length of avarta and summing the subsets
+toColors'::[JustNums] -> Int -> [Double]
+toColors' xs n = map sum . transpose $ chunksOf n (sepToSingles' xs (length xs))
+
+-- | To convert a series of JustNums into a progression of numbers between 0 and 1 based on the length
+-- of the phrase/ gap for circular visualization
+sepToSingles'::[JustNums]->Int -> [Double]
+sepToSingles' [] n =[]
+sepToSingles' (B : xs) n = sepToSingles' xs n
+sepToSingles' ((P a):xs) n = map (\x -> fromIntegral x/fromIntegral n) [1..a] ++ sepToSingles' xs n
+sepToSingles' ((G a):xs) n = map (\x -> fromIntegral (-x + 1)/ fromIntegral n) [1..a] ++ sepToSingles' xs n
+
+-- | To obtain the for display in overlapping circles
+getCols :: (Ord a, Fractional a) => a -> Colour a
+getCols x = if x >0  then rgb (0.5 + x/2) x x
+                  else rgb (0.5 + x/2) (-x) (-x)
+
+-- TidalCycles import the audios
+-- Varying time signatures 
 
