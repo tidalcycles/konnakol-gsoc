@@ -28,6 +28,7 @@ import Data.List
 
 import System.Random
 import Diagrams.TwoD (text)
+import qualified Control.Arrow as Data.Bifunctor
 
 -- | To convert a series of JustNums into a progression of numbers between 0 and 1 based on the length
 -- of the phrase/ gap
@@ -126,7 +127,8 @@ main = main2
 
 main4 = mainWith $ pictureKorvaiC Chaturasra thriputa Chaturasra (mkStdGen 758)
 main3 = mainWith $pictureMohra Chaturasra thriputa Chaturasra
-main2 = mainWith $ visNumsVarying (S [(3,compi),(4, compi)]) Chaturasra thriputa
+main2 = mainWith $ visNumsVarying (S [(3,[P 4, G 2, P 4, G 2]),(4, [P 5, G 3, P 5, G 3]), 
+                    (5, [ P 6, G 4, P 6, G 4]), (7, [P 9, G 5, P 9, G 5])]) Chaturasra thriputa
 
 
 -- | To create a sector with the size based on the element's index and the total array size
@@ -198,16 +200,16 @@ splitIt::[(Double,Double)] -> Double -> [(Double, Double)] -> Double -> [[(Doubl
 splitIt [] _ l _ = [l | l /= []]
 splitIt ((x,y):xs) a l c = if abs(a + y - c) < 0.000000001 then  (l++ [(x,y)]) : splitIt xs 0 [] c
                     else splitIt xs (a + y) (l ++ [(x,y)]) c
- 
+
 -- | Core function to visualize a list of JustNums
 visNumsVarying:: Varying -> JatiGati-> Thala -> Diagram B
 visNumsVarying arr jati thala = lattice
     where
         vals = convToChanging arr
         maxm = maximum  (map snd vals)
-        vals2 = map (\(x,y) -> (x, maxm/y)) vals
-        labels = gridThala (getLabels thala jati 1)
-        grids = map (centerXY.hcat. map getSquaresV) (splitIt vals2 0 [] (maxm*(fromIntegral(calculateCount jati thala))))
+        vals2 = map (Data.Bifunctor.second (maxm /)) vals
+        labels = gridThala (getLabels thala jati (floor maxm))
+        grids = map (centerXY.hcat. map getSquaresV) (splitIt vals2 0 [] (maxm*fromIntegral(calculateCount jati thala)))
         lattice = vcat [labels, vcat grids]
 
 compi = [P 7, G 4, P 7, G 4, P 7, G 4, P 6, G 4, P 6, G 4, P 6, G 4,
@@ -215,3 +217,8 @@ compi = [P 7, G 4, P 7, G 4, P 7, G 4, P 6, G 4, P 6, G 4, P 6, G 4,
                                                  P 3, G 4, P 3, G 4, P 3, G 4,
                                                 P 2, G 4, P 2, G 4, P 2, G 4, P 1, G 4, P 1, G 4, P 1, G 3, P 1,
                                                 G 4, P 1, G 4, P 1, G 3, P 1, G 4, P 1 , G 4, P 1]
+
+
+-- Fix bugs in visualization
+-- Fix header in compositions with varying time signatures
+-- hv pun
