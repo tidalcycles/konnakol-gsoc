@@ -121,16 +121,6 @@ gridKonM x s = lattice
       grids = map (centerXY.hcat. map getSquaresM) x
       lattice = vcat [labels, vcat grids]
 
-main1 = mainWith $ pictureKorvai Chaturasra thriputa Chaturasra (mkStdGen 758)
-main = main2
-
-
-main4 = mainWith $ pictureKorvaiC Chaturasra thriputa Chaturasra (mkStdGen 758)
-main3 = mainWith $pictureMohra Chaturasra thriputa Chaturasra
-main2 = mainWith $ visNumsVarying (S [(3,[P 4, G 2, P 4, G 2]),(4, [P 5, G 3, P 5, G 3]), 
-                    (5, [ P 6, G 4, P 6, G 4]), (7, [P 9, G 5, P 9, G 5])]) Chaturasra thriputa
-
-
 -- | To create a sector with the size based on the element's index and the total array size
 createSector :: Double->Double->Double-> Diagram B
 createSector val ind n = annularWedge 1 0.6 d a # fc col
@@ -183,9 +173,6 @@ getCols x = if x >0  then rgb (0.5 + x/2) x x
                   else rgb (0.5 + x/2) (-x) (-x)
 
 
--- TidalCycles import the audios
--- Varying time signatures 
-
 newtype Varying = S [(Double , [JustNums])]
 
 convToChanging::Varying -> [(Double, Double)]
@@ -212,13 +199,13 @@ visNumsVarying arr jati thala = lattice
         grids = map (centerXY.hcat. map getSquaresV) (splitIt vals2 0 [] (maxm*fromIntegral(calculateCount jati thala)))
         lattice = vcat [labels, vcat grids]
 
-compi = [P 7, G 4, P 7, G 4, P 7, G 4, P 6, G 4, P 6, G 4, P 6, G 4,
-                                                P 5, G 4, P 5, G 4, P 5, G 4,P 4, G 4, P 4, G 4, P 4, G 4,
-                                                 P 3, G 4, P 3, G 4, P 3, G 4,
-                                                P 2, G 4, P 2, G 4, P 2, G 4, P 1, G 4, P 1, G 4, P 1, G 3, P 1,
-                                                G 4, P 1, G 4, P 1, G 3, P 1, G 4, P 1 , G 4, P 1]
+
+main1 = mainWith $ pictureKorvai Chaturasra thriputa Chaturasra (mkStdGen 758)
+main = main2
 
 
--- Fix bugs in visualization
--- Fix header in compositions with varying time signatures
--- hv pun
+main4 = mainWith $ pictureKorvaiC Chaturasra thriputa Chaturasra (mkStdGen 758)
+main3 = mainWith $pictureMohra Chaturasra thriputa Chaturasra
+main2 = mainWith $ visNumsVarying (S [(3,[P 4, G 2, P 4, G 2]),(4, [P 5, G 3, P 5, G 3]), 
+                    (5, [ P 6, G 4, P 6, G 4]), (7, [P 9, G 5, P 9, G 5])]) Chaturasra thriputa
+
