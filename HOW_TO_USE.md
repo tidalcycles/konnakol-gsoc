@@ -45,6 +45,10 @@ The new datatypes defined in the code are as follows:
 * **getNums** : This function converts a simplified korvai from groupPhs to just numbers. Phrases, gaps and breaks are represented using just numbers.
 * **validateKorvai** :  This function is used to validate a korvai entered as a list of JustNums. This function first gets the numerical representation of the functions using groupPhs and getNums, and then checks whether the output is a valid Korvai.
 
+## Datatypes (diagram.hs)
+
+* **Varying** : This function is used to take composition with varying time signatures. Here, compositions are entered as a list of tuples containing the count per beat for a section and that particular section as a list of JustNums.
+
 ## Function (diagram.hs)
  
 * **sepToSingles** : This function takes a list of JustNums and converts each Phrase/ Gap of a particular length (say n) into n units with increasing/decreasing values between 0 and 1/-1. This is to facilitate a gradient in the grid generated. Phrases are converted into decreasing gradients of red, while gaps are converted into increasing gradients of blue.
@@ -53,8 +57,19 @@ The new datatypes defined in the code are as follows:
 * **visNums** : This function is to visualize a given list of JustNums along with the jati, thala, gati and the speed using toColors, getLabels, and gridKon.
 * **pictureKorvai** : This is the core function in order to generate grid for Korvai. Here, one calls the genKorvai function on the required jati, thala and gati, and used the list of JustNums returned to form the image.
 * **getSquares** : This function takes a single double value and converts it into the square of the required size with the assigned colour.
-* **gridKon* : This function generates the grid for the Korvai, by calling getSquares for each row.
+* **gridKon** : This function generates the grid for the Korvai, by calling getSquares for each row.
 * **pictureMohra**: This is the core function to generate the grid for a Mohra. Here, we denote each subdivision by a colour. Hence, each section is assigned a number between 1 and 5. sepToSinglesM is then called to assign the gradient value. Then, getSquaresM is called to assign colour based on the gradient value and the identifier number. Note that the reason why the Mohra has a different representation is because the separations are the main characteristic for the Mohra (unlike the Korvai, where gaps play a more significant role).
 * **sepToSinglesM** : This function is similar to the sepToSingles function, but it also contains the identifier for the Mohra segment.
 * **getSquaresM**: This generates the squares for the Mohra. Here, based on the segment the value is, a different colour is generated.
 *  **gridKonM** : This function generates the grid for the Mohra. 
+*  **createSector**: This function enables the creation of an annular wedge for circular visualization of the Mohra.
+*  **getSectors**: This function takes a list of values, and creates overlapping annular wedges for each component. The size of annular wedge for a particular component will be larger than that for the component in the previous index.
+*  **CompToCircle**: This function takes a list of JustNums, along with the jati, thala, gati and the speed and creates the circular representation for the same.
+*  **pictureKorvaiC** : This is the core function to generate a Korvai and to obtain its circular representation.
+*  **toColors'**: This is similar to the toColors function. However, component-wise addition is performed here for overlapping representation.
+*  **sepToSingles'**: This function converts a series of JustNums into a progression of numbers between 0 and 1 based on the length of the phrase/ gap for circular visualization.
+*  **getCols**: This function takes a double value and returns a color for circular visualisation.
+*  **convToChanging**: This function takes a Varying composition and converts it into a list of tuples containing the count per beat and a corresponding sepToSingles component.
+*  **getSquaresV**: This function is used for creation of rectangles for changing time compositions. A normalised count per beat is used as the length, which varies for different count per beats.
+*  **splitIt**: This function is used for recursively splitting up a composition with varying time signatures into its corresponding components.
+*  **visNumsVarying**: This is the core function to visualize a composition with varying time signatures. Here, the maximum of the count per beats is used to normalise the composition.
