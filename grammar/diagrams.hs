@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeFamilies              #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use tuple-section" #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 
 import Diagrams.Prelude hiding (P)
@@ -202,8 +203,6 @@ visNumsVarying arr jati thala = lattice
 
 main1 = mainWith $ pictureKorvai Chaturasra thriputa Chaturasra (mkStdGen 758)
 main = main2
-
-
 main4 = mainWith $ pictureKorvaiC Chaturasra thriputa Chaturasra (mkStdGen 758)
 main3 = mainWith $pictureMohra Chaturasra thriputa Chaturasra
 main2 = mainWith $ visNumsVarying (S [(3,[P 4, G 2, P 4, G 2]),(4, [P 5, G 3, P 5, G 3]), 
