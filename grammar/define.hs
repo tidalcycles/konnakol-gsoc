@@ -5,7 +5,9 @@
 
 module Konnakol.Define where
 
+import Sound.Tidal.Pattern
 import System.Random
+import Data.String
 import Data.List ( findIndex, intercalate, intersperse, isPrefixOf, tails )
 import System.CPUTime ()
 import qualified Data.Map.Strict as K
@@ -163,7 +165,7 @@ finalDisp s (T thala) arr n cPB e =
     else let pos = mod n (length arr)
              c = e!!pos
              b = if pos == length arr - 1 then "||\n" else ""
-        in c ++ show (Phr (take cPB s)) ++ b ++ finalDisp (drop (arr !! pos) s) (T 
+        in c ++ show (Phr (take cPB s)) ++ b ++ finalDisp (drop (arr !! pos) s) (T
         thala) arr (n+1) cPB e
 
 -- | Define the standard phrases for different lengths
@@ -478,8 +480,8 @@ main = do
         y = getThala value2
         z = (read value3:: JatiGati)
         ch = (read value4 :: Int)
-        w =  if ch==1 then getRepresentation [K z, C [(fst (genKorvai x y z gen), getMohraSpeed z - 1)]] x y 0 
-        else getRepresentation [K z, C [(genMohra x y z gen, getMohraSpeed z)]] x y 0   
+        w =  if ch==1 then getRepresentation [K z, C [(fst (genKorvai x y z gen), getMohraSpeed z - 1)]] x y 0
+        else getRepresentation [K z, C [(genMohra x y z gen, getMohraSpeed z)]] x y 0
     putStrLn w
 
 
@@ -514,6 +516,7 @@ finalDT s (T thala) arr n cPB e =
     else let pos = mod n (length arr)
         in "[" ++ showT ((take cPB s)) ++"] " ++ finalDT (drop (arr !! pos) s) (T thala) arr (n+1) cPB e
 
+-- | Function which returns compositions in mini-notation
 showT::[Syllable] -> String
 showT [] = ""
 showT (Gdot:xs) = "~ " ++ showT xs
@@ -539,5 +542,19 @@ showT (Nam:xs) = "nam " ++ showT xs
 showT (Mi:xs) = "c " ++ showT xs
 showT (Nu:xs) = "ac " ++ showT xs
 
-tidalK jati thala gati gen = getRT [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed jati - 1)]] jati thala 0
-tidalM jati thala gati gen = getRT [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati -1)]] jati thala 0
+-- | Function to return a desired Korvai in mini-notation
+tidalK :: IsString a => JatiGati -> Thala -> JatiGati -> StdGen ->(a, Int)
+tidalK jati thala gati gen = 
+    let x = getRT [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed jati - 1)]] jati thala 0
+        y = (length.filter (=='[') ) x  
+    in (fromString x, y)
+
+
+-- | Function to return a desired Mohra in mini-notation
+tidalM :: IsString a => JatiGati -> Thala -> JatiGati -> StdGen -> (a, Int)
+tidalM jati thala gati gen =
+    let x = fromString $ getRT [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati -1)]] jati thala 0
+        y = (length.filter (=='[') ) x 
+    in (fromString x, y)
+
+
