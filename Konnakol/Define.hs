@@ -5,7 +5,7 @@
 
 module Konnakol.Define where
 
-import Sound.Tidal.Pattern
+
 import System.Random
 import Data.String
 import Data.List ( findIndex, intercalate, intersperse, isPrefixOf, tails )
@@ -548,7 +548,6 @@ tidalK jati thala gati gen =
     let x = getRT [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed jati - 1)]] jati thala 0
         y = (length.filter (=='[') ) x  
     in (fromString x, y)
-
 
 -- | Function to return a desired Mohra in mini-notation
 tidalM :: IsString a => JatiGati -> Thala -> JatiGati -> StdGen -> (a, Int)

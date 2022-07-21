@@ -1,17 +1,11 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE FlexibleContexts          #-}
-{-# LANGUAGE TypeFamilies              #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use tuple-section" #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-
+module Konnakol.Diagrams where
 
 import Diagrams.Prelude hiding (P)
 import Diagrams.Backend.SVG.CmdLine
 import Data.List.Split ( chunksOf )
 import Data.Colour.SRGB.Linear ( rgb )
 import qualified Data.Data as Data.Typeable.Internal
-import Define
+import Konnakol.Define
     ( calculateCount,
       genKorvai,
       getCountPerBeat,
@@ -97,10 +91,10 @@ pictureMohra jati thala gati =
 
 -- | Function to obtain equivalent symbols for representation of a thala on top of the grid
 getLabels::Thala->JatiGati->Int->String
-getLabels (Thala []) _ _ = ""
-getLabels (Thala (Laghu:xs)) jati cPB =   (show Laghu ++ replicate (cPB - 1) ' ') ++  concat (replicate (fromEnum jati - 1) ('^': replicate (cPB -1) ' ' )) ++ getLabels (Thala xs) jati cPB
-getLabels (Thala (Dhruta:xs)) jati cPB =   (show Dhruta ++ replicate (cPB - 1) ' ') ++ '^': replicate (cPB-1)  ' '++ getLabels (Thala xs) jati cPB
-getLabels (Thala (Anudhruta:xs)) jati cPB =   (show Anudhruta ++ replicate (cPB - 1) ' ') ++   getLabels (Thala xs) jati cPB
+getLabels (T []) _ _ = ""
+getLabels (T (Laghu:xs)) jati cPB =   (show Laghu ++ replicate (cPB - 1) ' ') ++  concat (replicate (fromEnum jati - 1) ('^': replicate (cPB -1) ' ' )) ++ getLabels (T xs) jati cPB
+getLabels (T (Dhruta:xs)) jati cPB =   (show Dhruta ++ replicate (cPB - 1) ' ') ++ '^': replicate (cPB-1)  ' '++ getLabels (T xs) jati cPB
+getLabels (T (Anudhruta:xs)) jati cPB =   (show Anudhruta ++ replicate (cPB - 1) ' ') ++   getLabels (T xs) jati cPB
 
 -- | Function to draw squares for each individual block in a Mohra based on the type
 getSquaresM::(Double, Int) -> Diagram B
