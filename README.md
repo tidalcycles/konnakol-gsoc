@@ -8,3 +8,6 @@ Mentor: Alex McLean
 To read more about Konnakol visit [here](ABOUT_KONNAKOL.md)
 
 To understand the datatypes and functions used, visit [here](HOW_TO_USE.md)
+
+To look at sample diagrams generated, visit [here](samplediags/)
+
