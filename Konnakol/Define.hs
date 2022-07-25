@@ -1,16 +1,16 @@
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use isNothing" #-}
-{-# HLINT ignore "Use first" #-}
-
 module Konnakol.Define where
 
+import Sound.Tidal.UI
+import Sound.Tidal.Pattern
 
 import System.Random
 import Data.String
 import Data.List ( findIndex, intercalate, intersperse, isPrefixOf, tails )
 import System.CPUTime ()
 import qualified Data.Map.Strict as K
+import Sound.Tidal.Context (slow, cat, sound)
+import GHC.Num (Num(fromInteger))
+import GHC.Real (Integral(toInteger))
 
 -- | BeatCount consists of the three ways in counting a cycle. Dhruta is typically 2 beats, while
 -- Anudhruta is a single beat. The Jati of the Thala defines the Dhruta
@@ -381,7 +381,7 @@ genKorvai::JatiGati -> Thala -> JatiGati -> StdGen -> ([Syllable], [JustNums])
 genKorvai jati thala gati gen=
     let sp = getMohraSpeed gati -1
         avarta = calculateCount jati thala*getCountPerBeat gati sp
-        counts = if avarta < 50 then 4* avarta else avarta
+        counts = 4*avarta
         overallCount = 2* counts
         (totPur', gen1) = randomR (div (overallCount - 50) 2, div (overallCount - 15) 2) gen :: (Int, StdGen)
         totPur = totPur' * 2
@@ -514,7 +514,7 @@ finalDT :: [Syllable] ->Thala -> [Int] -> Int ->Int->[String]-> String
 finalDT s (T thala) arr n cPB e =
     if null s then ""
     else let pos = mod n (length arr)
-        in "[" ++ showT ((take cPB s)) ++"] " ++ finalDT (drop (arr !! pos) s) (T thala) arr (n+1) cPB e
+        in "[" ++ showT (take cPB s) ++"] " ++ finalDT (drop (arr !! pos) s) (T thala) arr (n+1) cPB e
 
 -- | Function which returns compositions in mini-notation
 showT::[Syllable] -> String
@@ -543,17 +543,27 @@ showT (Mi:xs) = "c " ++ showT xs
 showT (Nu:xs) = "ac " ++ showT xs
 
 -- | Function to return a desired Korvai in mini-notation
-tidalK :: IsString a => JatiGati -> Thala -> JatiGati -> StdGen ->(a, Int)
-tidalK jati thala gati gen = 
-    let x = getRT [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed jati - 1)]] jati thala 0
-        y = (length.filter (=='[') ) x  
-    in (fromString x, y)
+tidalK :: JatiGati -> Thala -> JatiGati -> StdGen ->ControlPattern
+tidalK jati thala gati gen =
+    let x = getRT [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed gati - 1)]] jati thala 0
+        y = (length.filter (=='[') ) x
+    in (slow (fromInteger $ toInteger y) $ sound (fromString x))
 
 -- | Function to return a desired Mohra in mini-notation
-tidalM :: IsString a => JatiGati -> Thala -> JatiGati -> StdGen -> (a, Int)
+tidalM :: JatiGati -> Thala -> JatiGati -> StdGen -> ControlPattern
 tidalM jati thala gati gen =
-    let x = fromString $ getRT [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati -1)]] jati thala 0
-        y = (length.filter (=='[') ) x 
-    in (fromString x, y)
+    let x = getRT [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati - 1)]] jati thala 0
+        y = (length.filter (=='[') ) x
+    in (slow (fromInteger $ toInteger y) $ sound (fromString x))
+
+-- btfix :: [(Int, Pattern a)] ->Pattern a
+-- btfix x = let
+--     a = map fst x
+--     b = foldl (\accum y -> div (accum * y) (gcd accum y)) (head a) a
+--     c = map (\y -> slow (fromInteger $ toInteger $ div b (fst y)) (snd y)) x
+--     in cat c
 
 
+-- How do I concatenate a series of patterns into a single pattern?
+-- Once I do that I can perhaps obtain one single pattern containing all thse patterns
+-- So using this compositions wth varying times can be composed.
