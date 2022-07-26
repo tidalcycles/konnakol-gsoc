@@ -1,14 +1,13 @@
 module Konnakol.Define where
 
-import Sound.Tidal.UI
+import Sound.Tidal.Context
 import Sound.Tidal.Pattern
 
-import System.Random
-import Data.String
+import System.Random ( getStdGen, Random(randomR), StdGen )
+import Data.String ( IsString(fromString) )
 import Data.List ( findIndex, intercalate, intersperse, isPrefixOf, tails )
 import System.CPUTime ()
 import qualified Data.Map.Strict as K
-import Sound.Tidal.Context (slow, cat, sound)
 import GHC.Num (Num(fromInteger))
 import GHC.Real (Integral(toInteger))
 
@@ -567,3 +566,6 @@ tidalM jati thala gati gen =
 -- How do I concatenate a series of patterns into a single pattern?
 -- Once I do that I can perhaps obtain one single pattern containing all thse patterns
 -- So using this compositions wth varying times can be composed.
+
+
+-- Mridangam samples (c) Arthur Carabott, distributed under a CC-BY-SA license https://creativecommons.org/licenses/by-sa/4.0/
