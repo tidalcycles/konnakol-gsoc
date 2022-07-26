@@ -44,6 +44,10 @@ The new datatypes defined in the code are as follows:
 * **groupPhs** : This method simplifies a Korvai to the maximum extent - a sequence of phrases and gaps, which can then be analysed.
 * **getNums** : This function converts a simplified korvai from groupPhs to just numbers. Phrases, gaps and breaks are represented using just numbers.
 * **validateKorvai** :  This function is used to validate a korvai entered as a list of JustNums. This function first gets the numerical representation of the functions using groupPhs and getNums, and then checks whether the output is a valid Korvai.
+* **getRT, getSCT, finalDT**:  These function takes a composition and returns it in its equivalent mini-notation for use in TidalCycles. They fucntion similar to getRepresentation.
+* **showT**: This is used to return the equivalent syllable for so that TIdalCycles can access the corresponding sound file.
+* **tidalK**: This function takes that Jati, Thala and the Gati, and returns a Korvai in MiniNotation, slowed down to an appropriate speed.
+* **tidalM**: This is similar to the tidalK function, but it returns a Mohra instead.
 
 ## Datatypes (diagram.hs)
 
