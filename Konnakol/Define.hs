@@ -1,15 +1,11 @@
 module Konnakol.Define where
 
-import Sound.Tidal.Context
-import Sound.Tidal.Pattern
-
-import System.Random ( getStdGen, Random(randomR), StdGen )
+import Sound.Tidal.Context hiding (s,n)
+import Sequence hiding (slow)
+import System.Random ( getStdGen, Random(randomR), StdGen, mkStdGen )
 import Data.String ( IsString(fromString) )
 import Data.List ( findIndex, intercalate, intersperse, isPrefixOf, tails )
 import System.CPUTime ()
-import qualified Data.Map.Strict as K
-import GHC.Num (Num(fromInteger))
-import GHC.Real (Integral(toInteger))
 
 -- | BeatCount consists of the three ways in counting a cycle. Dhruta is typically 2 beats, while
 -- Anudhruta is a single beat. The Jati of the Thala defines the Dhruta
@@ -25,12 +21,19 @@ instance Show BeatCount where
 newtype Thala = T [BeatCount] deriving (Read)
 
 -- | Standard 7 thalas in the Suladi Sapta Thala system
+dhruva::Thala
 dhruva = T [Laghu, Dhruta, Laghu, Laghu]
+matya::Thala
 matya = T [Laghu, Dhruta, Laghu]
+rupaka::Thala
 rupaka = T [Dhruta, Laghu]
+jhampe::Thala
 jhampe = T [Laghu, Dhruta, Anudhruta]
+thriputa::Thala
 thriputa = T [Laghu, Dhruta, Dhruta]
+atta::Thala
 atta = T [Laghu, Laghu, Dhruta, Dhruta]
+eka::Thala
 eka = T [Laghu]
 
 -- | Define display of Thala based on that of the BeatCount
@@ -132,7 +135,7 @@ getRepresentation:: [Comp] -> JatiGati ->Thala ->Int->String
 getRepresentation ((K x):y:xs) jati thala pos  =
      let (a,b) = getStringComp y jati thala (K x) pos
      in "<" ++ show (fromEnum x) ++ ">" ++ a ++ getRepresentation xs jati thala b
-getRepresentation _ _ _ b =""
+getRepresentation _ _ _ _ =""
 
 -- | Driver function for getting a virtual representation of a composition, after validation
 getStringComp :: Comp->JatiGati->Thala->Comp->Int-> (String, Int)
@@ -153,9 +156,9 @@ getStringComp _ _ _ _ _ = ("",0)
 
 -- | Core function in obtaining string from Composition
 convToList :: [([Syllable], Int)] -> Int ->JatiGati-> [Syllable]
-convToList [] maxs g= []
+convToList [] _ _= []
 convToList listas maxs g =
-   concatMap (\(x,s)-> concatMap (\t ->  t:replicate (div maxs (getCountPerBeat g s) -1) Gdot) x) listas
+   concatMap (\(x,d)-> concatMap (\t ->  t:replicate (div maxs (getCountPerBeat g d) -1) Gdot) x) listas
 
 -- | Final display of a thala in lines with proper subdivisions
 finalDisp :: [Syllable] ->Thala -> [Int] -> Int ->Int->[String]-> String
@@ -214,7 +217,7 @@ genPhrase4Me x tossgen =
                                                  (d, e) = genPhrase4Me (x - y) c
                                         in if y > x - y then (d ++ b, e) else (b ++ d, e)
                         else let (pha, c) = phraseGenerator (div x factor) gen
-                                 b = concatMap (\x->x:replicate (factor - 1) Gdot) pha
+                                 b = concatMap (\t->t:replicate (factor - 1) Gdot) pha
                             in (b,c)
         in (one, two)
 
@@ -239,6 +242,7 @@ mohrad Misra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak,Gdot, Tha, Lan, Gdot,Gu, Dh
 mohrad Sankirna = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Tha, Lan, Gdot, Gu, Dhin, Gdot, Dhin, Gdot, Gdot, Gdot]
 
 -- | Define one of the final constants used in the Mohra
+mohraC1::JatiGati -> [Syllable]
 mohraC1 Chaturasra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Gdot, Gdot]
 mohraC1 Tisra = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot]
 mohraC1 Khanda = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot]
@@ -246,6 +250,7 @@ mohraC1 Misra = [Tha, Lan, Gdot, Gu, Dhin,Gdot, Gdot]
 mohraC1 Sankirna = [Tha, Lan, Gdot, Gu, Dhin, Gdot, Gdot, Gdot, Gdot]
 
 -- | Define the constant used to end the Mohra
+mohraC2 :: JatiGati -> [Syllable]
 mohraC2 Tisra = concat (replicate 3 [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot, Gu, Gdot]) ++ replicate 6 Gdot
 mohraC2 Chaturasra =concat (replicate 3 [Tha, Lan, Gdot, Gu, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gdot, Gdot]) ++ replicate 4 Gdot
 mohraC2 Khanda = concat( replicate 3 [Tha, Lan, Gdot, Gu, Dhin, Gdot,Thak, Gdot, Dhin, Gdot, Thak, Gdot, Dhin, Gdot, Gu, Gdot]) ++ [Gdot, Gdot]
@@ -262,9 +267,9 @@ getMohraSpeed gati
 -- | To get the appropriate separations for a required mohra generation
 getMohraSeparation::Int->JatiGati->[Int]
 getMohraSeparation count gati =
-    let snd = length $ mohrad gati
-        fst =div (count - 2*snd) 2
-    in [fst, snd, fst, snd]
+    let scnd = length $ mohrad gati
+        frst =div (count - 2*scnd) 2
+    in [frst, scnd, frst, scnd]
 
 -- | To generate a Mohra on the basis of the jati, thala and gati
 genMohra::JatiGati->Thala->JatiGati->StdGen->[Syllable]
@@ -273,17 +278,15 @@ genMohra jati thala gati gen=
         phd = mohrad gati
         overAllCount = if calculateCount jati thala<= 4 then 2*calculateCount jati thala
                         else calculateCount jati thala
-        [a,b,c,d] = getMohraSeparation (getCountPerBeat gati sp*overAllCount) gati
+        [a,b,_,_] = getMohraSeparation (getCountPerBeat gati sp*overAllCount) gati
         (pha, gen1) = if gati==Chaturasra || gati == Misra || gati == Sankirna|| mod a 2 ==1 then genPhrase4Me a gen else genPhrase4Me (div a 2) gen
         pham = if gati == Chaturasra || gati == Misra || gati == Sankirna|| mod a 2 == 1 then pha else intersperse Gdot pha ++ [Gdot]
-        (phb, gen2 ) = if gati==Chaturasra || gati == Misra || gati == Sankirna || mod a 2 == 1 then genPhrase4Me b gen else genPhrase4Me (div b 2) gen
+        (phb, _ ) = if gati==Chaturasra || gati == Misra || gati == Sankirna || mod a 2 == 1 then genPhrase4Me b gen1 else genPhrase4Me (div b 2) gen1
         phbm = if gati == Chaturasra || gati == Misra || gati == Sankirna || mod a 2 == 1 then phb else intersperse Gdot phb ++ [Gdot]
         c1 = mohraC1 gati
         c2 = mohraC2 gati
         derMohra = concat [pham, phbm, pham, phd, pham, phbm, pham, phd, pham, phbm, pham, c1,pham, c1, pham,c2]
     in derMohra
-
---getRepresentation [K gati, C [(derMohra, sp)]] jati thala 0
 
 -- | To read the thala from user input
 getThala :: String->Thala
@@ -294,6 +297,7 @@ getThala "Rupaka" = rupaka
 getThala "Thriputa" = thriputa
 getThala "Atta" = atta
 getThala "Jhampe" = jhampe
+getThala _ = eka
 
 
 
@@ -307,16 +311,17 @@ getGPh 5 = getGPh 2 ++ getGPh 3
 getGPh 6 = concat $ replicate 2 (getGPh 3)
 getGPh 7 = getGPh 4 ++ getGPh 3
 getGPh 8 = getGPh 3 ++ getGPh 5
+getGPh _ = error "Undesired length"
 
 -- composing a smaller subpattern for a Korvai without the extra gap
 getSub:: Int-> StdGen -> ([Syllable], [JustNums])
-getSub sum gen =
-    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2,3..8], g<- 0:[2,3..8], n <-[3,4, 5], n*x + (n-1)*g + (div (n*(n-1)) 2) *d ==sum]
+getSub s gen =
+    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div s 3)], d <- [2,3..8], g<- 0:[2,3..8], n <-[3,4, 5], n*x + (n-1)*g + (div (n*(n-1)) 2) *d ==s]
         vals2 = map (\(a,b) -> (reverse a,b)) vals1
         vals = vals1 ++ vals2
         (pos, gen2 ) = randomR (0, length vals - 1) gen :: (Int, StdGen)
-        (phs, gp) = if null vals then ([sum],0) else vals !! pos
-        (ph1, newgen, nList)
+        (phs, gp) = if null vals then ([s],0) else vals !! pos
+        (ph1, _, nList)
           | minimum phs > 15  =
              let fl = map (`getSub` gen2) phs
                  fl1 = map fst  fl
@@ -332,14 +337,14 @@ getSub sum gen =
 
 -- | To generate the purvardha for a given length for the Korvai
 getPurvardha::Int->StdGen->([Syllable], StdGen, [JustNums])
-getPurvardha sum gen =
-    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div sum 3)], d <- [2,3..8], g<- [2,3..8], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==sum]
+getPurvardha s gen =
+    let vals1 = [([x, x + d..(x + (n -1)*d)],g) | x <- [1,2..(div s 3)], d <- [2,3..8], g<- [2,3..8], n <-[3,4, 5], n*x + n*g + (div (n*(n-1)) 2) *d ==s]
         vals2 = map (\(a,b) -> (reverse a,b)) vals1
-        vals3 = [([x,x,x], g) | x<- [1,2..(div sum 3)], g<- 0:[2,3..8], 3*x + 3*g == sum]
-        vals4 = [(map (\k -> x*d^k) [0,1..(n-1)], g) | x <- [1,2..(div sum 3)] , d <- [2,3,4,5], g <- [0,2,3,4,5], n <- [3,4,5], x*(div (d^n - 1) (d -1)) + n*g == sum ]
+        vals3 = [([x,x,x], g) | x<- [1,2..(div s 3)], g<- 0:[2,3..8], 3*x + 3*g == s]
+        vals4 = [(map (\k -> x*d^k) [0,1..(n-1)], g) | x <- [1,2..(div s 3)] , d <- [2,3,4,5], g <- [0,2,3,4,5], n <- [3,4,5], x*(div (d^n - 1) (d -1)) + n*g == s ]
         vals = vals1 ++ vals2 ++ vals3 ++ vals4
         (pos, gen2 ) = randomR (0, length vals - 1) gen :: (Int, StdGen)
-        (phs, gp) = if null vals then ([sum],0) else vals !! pos
+        (phs, gp) = if null vals then ([s],0) else vals !! pos
         (ph1, newgen, nList)
           | minimum phs > 15  =
              let fl = map (`getSub` gen2) phs
@@ -385,7 +390,7 @@ genKorvai jati thala gati gen=
         (totPur', gen1) = randomR (div (overallCount - 50) 2, div (overallCount - 15) 2) gen :: (Int, StdGen)
         totPur = totPur' * 2
         totUtt = overallCount -  totPur
-        (purva, gen2, nList) =getPurvardha totPur gen1
+        (purva, _, nList) =getPurvardha totPur gen1
         (uttara, nList2) = if even totUtt && totUtt >=32 then getUttarVarying totUtt else getUttar totUtt
         in (purva ++ uttara ,  nList ++ nList2)
 
@@ -402,7 +407,7 @@ concatPhGp [] = []
 genComp::[UIComp] -> JatiGati -> Thala ->StdGen -> [Comp]
 genComp ((Tc x):y ) jati thala gen =K x:genComp y jati thala gen
 genComp ((Ph t:y)) jati thala gen =
-    let b = foldl (\(acc, gen1) (p,q) -> ((fst (genPhrase4Me p gen),q):acc, snd(genPhrase4Me p gen))) ([], gen) t
+    let b = foldl (\(acc, gen1) (p,q) -> ((fst (genPhrase4Me p gen1),q):acc, snd(genPhrase4Me p gen1))) ([], gen) t
         a = fst b
         in C a:genComp y jati thala (snd b)
 genComp ((Gp t: y)) jati thala gen =
@@ -468,6 +473,7 @@ validateKorvai arr jati thala gati =
         bool3 = mod totsum avarta == 0
     in bool1 && bool2 && bool3
 
+main :: IO()
 main = do
     value1 <- getLine
     value2 <- getLine
@@ -489,7 +495,7 @@ getRT:: [Comp] -> JatiGati ->Thala ->Int->String
 getRT ((K x):y:xs) jati thala pos  =
      let (a,b) = getSCT y jati thala (K x) pos
      in a ++ getRT xs jati thala b
-getRT _ _ _ b =""
+getRT _ _ _ _ =""
 
 -- | Driver function for getting a virtual representation of a composition, after validation
 getSCT :: Comp->JatiGati->Thala->Comp->Int-> (String, Int)
@@ -555,17 +561,61 @@ tidalM jati thala gati gen =
         y = (length.filter (=='[') ) x
     in (slow (fromInteger $ toInteger y) $ sound (fromString x))
 
--- btfix :: [(Int, Pattern a)] ->Pattern a
--- btfix x = let
---     a = map fst x
---     b = foldl (\accum y -> div (accum * y) (gcd accum y)) (head a) a
---     c = map (\y -> slow (fromInteger $ toInteger $ div b (fst y)) (snd y)) x
---     in cat c
+-- Method to convert a composition into a pattern Sequence
+-- Converting getRT would be pretty easy I guess in this regard
 
+-- | Representing Compositions with changing speeds as lists of lists of syllables
+getSeqRep:: [Comp] -> JatiGati ->Thala ->Int->[[Syllable]]
+getSeqRep ((K x):y:xs) jati thala pos  =
+     let (a,b) = getSCTSeq y jati thala (K x) pos
+     in a ++ getSeqRep xs jati thala b
+getSeqRep _ _ _ _ =[]
 
--- How do I concatenate a series of patterns into a single pattern?
--- Once I do that I can perhaps obtain one single pattern containing all thse patterns
--- So using this compositions wth varying times can be composed.
+-- | Driver function for getting a list representation of a composition, after validation
+getSCTSeq :: Comp->JatiGati->Thala->Comp->Int-> ([[Syllable]], Int)
+getSCTSeq (C k) jati (T thala) (K gati) pos =
+    let maxS = maximum $ map snd k
+        countPerBeat = getCountPerBeat gati maxS
+        b = calculateCount jati (T thala)
+        countPerAvarta = countPerBeat * b
+        a = convToList k countPerBeat gati
+        d =
+         --if mod (length a) countPerBeat == 0 then
+            let c = replicate (calculateCount jati (T thala)) countPerBeat
+                in (finalDTSeq a (T thala) c pos countPerBeat, pos + div (mod (length a) countPerAvarta) countPerBeat )
+         --else ("Error", 0)
+    in d
+getSCTSeq _ _ _ _ _ = ([[]],0)
+
+-- | Final display of a composition as a list of lists of syllables with proper subdivisions
+finalDTSeq :: [Syllable] ->Thala -> [Int] -> Int ->Int-> [[Syllable]]
+finalDTSeq s (T thala) arr n cPB=
+    if null s then [[]]
+    else let pos = mod n (length arr)
+        in  take cPB s : finalDTSeq (drop (arr !! pos) s) (T thala) arr (n+1) cPB
+
+-- | Function which takes a list of list of syllables and converts each list to a Sequence 
+getSeqfromKon :: [[Syllable]] -> Rational  -> [Sequence Syllable]
+getSeqfromKon [] _  = []
+getSeqfromKon (x:xs) durat =
+    let y = durat / realToFrac (length x)
+        a = map (\t -> if t == Gdot then Gap y else Atom y t) x
+    in Sequence a : getSeqfromKon xs durat
+
+-- | Function to return a desired Korvai in Sequence notation
+sequenceK :: JatiGati -> Thala -> JatiGati -> StdGen ->Sequence Syllable
+sequenceK jati thala gati gen =
+    let x = getSeqRep [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed gati - 1)]] jati thala 0
+        y = getSeqfromKon x 1
+    in Sequence.unwrap $ Sequence y
+
+-- | Function to return a desired Mohra in Sequence notation
+sequenceM :: JatiGati -> Thala -> JatiGati -> StdGen -> Sequence Syllable
+sequenceM jati thala gati gen =
+    let x = getSeqRep [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati - 1)]] jati thala 0
+        y = getSeqfromKon x 1
+    in Sequence.unwrap $ Sequence y
 
 
 -- Mridangam samples (c) Arthur Carabott, distributed under a CC-BY-SA license https://creativecommons.org/licenses/by-sa/4.0/
+
