@@ -363,6 +363,12 @@ _euclid a b s  =
       y = map (\t -> if t then s else Gap (seqSpan s)) x
   in unwrap $ Sequence y
 
+makeSeq:: [Syllable] -> Rational -> Sequence Syllable
+makeSeq x r = 
+  let a = lcmRational (realToFrac $ length x) r
+      b = concat $ replicate (div (fromIntegral $ numerator a) (length x)) x
+      c = map (\t -> if t == Gdot then Gap (1/r) else Atom (1/r) t) b
+  in unwrap $ Sequence c
 
 {-
    EXISTING STUFF IN TIDAL
