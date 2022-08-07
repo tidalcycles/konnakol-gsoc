@@ -22,6 +22,7 @@ import Data.List(inits)
 import Prelude hiding (span)
 import Data.Ratio
 import Sound.Tidal.Bjorklund
+import Konnakol.Define
 
 data Strategy = JustifyLeft
               | JustifyRight

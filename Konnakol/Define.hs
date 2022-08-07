@@ -616,5 +616,13 @@ sequenceM jati thala gati gen =
         y = getSeqfromKon x 1
     in Sequence.unwrap $ Sequence y
 
+
 -- Mridangam samples (c) Arthur Carabott, distributed under a CC-BY-SA license https://creativecommons.org/licenses/by-sa/4.0/
 
+-- PRESENTATION FLOW
+-- Introduction to Konnakol (Mainly the Suladi Sapta thala system)
+-- Korvai and Mohra (basic structure)
+-- How I have stored the data
+-- Flex diagrams, and composition generation
+-- Main flex(tidalCycles)
+-- The sequence part in Konnakol
