@@ -1,7 +1,6 @@
 module Konnakol.Define where
 
 import Sound.Tidal.Context hiding (s,n)
-import Sequence hiding (slow)
 import System.Random ( getStdGen, Random(randomR), StdGen, mkStdGen )
 import Data.String ( IsString(fromString) )
 import Data.List ( findIndex, intercalate, intersperse, isPrefixOf, tails )
@@ -103,8 +102,8 @@ data Comp = C [([Syllable], Int)] | K JatiGati deriving(Show)
 showFinalThala :: JatiGati -> Thala -> JatiGati -> String
 showFinalThala jati thala gati =
     let a = show thala
-        b = " (" ++ show ( calculateCount jati thala) ++ ")"
-        c = " <" ++ show (fromEnum gati )++ ">"
+        b = " (" ++ show ( calculateCount jati thala) ++ ") "
+        c = " <" ++ show (fromEnum gati )++ "> "
     in a ++ b ++ c
 
 -- | Get the Counts per beat in a certain thala in a particular gati
@@ -541,7 +540,7 @@ showT (Ku:xs) = "ac " ++ showT xs
 showT (Ri:xs) = "c " ++ showT xs
 showT (Ka:xs) = "ka " ++ showT xs
 showT (Tham:xs) = "ac " ++ showT xs
-showT (Thak:xs) = "thak " ++ showT xs
+showT (Thak:xs) = "c " ++ showT xs
 showT (Dhim:xs) = "dhin " ++ showT xs
 showT (Nam:xs) = "nam " ++ showT xs
 showT (Mi:xs) = "c " ++ showT xs
@@ -595,34 +594,28 @@ finalDTSeq s (T thala) arr n cPB=
         in  take cPB s : finalDTSeq (drop (arr !! pos) s) (T thala) arr (n+1) cPB
 
 -- | Function which takes a list of list of syllables and converts each list to a Sequence 
-getSeqfromKon :: [[Syllable]] -> Rational  -> [Sequence Syllable]
-getSeqfromKon [] _  = []
-getSeqfromKon (x:xs) durat =
-    let y = durat / realToFrac (length x)
-        a = map (\t -> if t == Gdot then Gap y else Atom y t) x
-    in Sequence a : getSeqfromKon xs durat
+-- getSeqfromKon :: [[Syllable]] -> Rational  -> [Sequence Syllable]
+-- getSeqfromKon [] _  = []
+-- getSeqfromKon (x:xs) durat =
+--     let y = durat / realToFrac (length x)
+--         a = map (\t -> if t == Gdot then Gap y else Atom y t) x
+--     in Sequence a : getSeqfromKon xs durat
 
--- | Function to return a desired Korvai in Sequence notation
-sequenceK :: JatiGati -> Thala -> JatiGati -> StdGen ->Sequence Syllable
-sequenceK jati thala gati gen =
-    let x = getSeqRep [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed gati - 1)]] jati thala 0
-        y = getSeqfromKon x 1
-    in Sequence.unwrap $ Sequence y
+-- -- | Function to return a desired Korvai in Sequence notation
+-- sequenceK :: JatiGati -> Thala -> JatiGati -> StdGen ->Sequence Syllable
+-- sequenceK jati thala gati gen =
+--     let x = getSeqRep [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed gati - 1)]] jati thala 0
+--         y = getSeqfromKon x 1
+--     in Sequence.unwrap $ Sequence y
 
--- | Function to return a desired Mohra in Sequence notation
-sequenceM :: JatiGati -> Thala -> JatiGati -> StdGen -> Sequence Syllable
-sequenceM jati thala gati gen =
-    let x = getSeqRep [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati - 1)]] jati thala 0
-        y = getSeqfromKon x 1
-    in Sequence.unwrap $ Sequence y
+-- -- | Function to return a desired Mohra in Sequence notation
+-- sequenceM :: JatiGati -> Thala -> JatiGati -> StdGen -> Sequence Syllable
+-- sequenceM jati thala gati gen =
+--     let x = getSeqRep [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati - 1)]] jati thala 0
+--         y = getSeqfromKon x 1
+--     in Sequence.unwrap $ Sequence y
 
 
 -- Mridangam samples (c) Arthur Carabott, distributed under a CC-BY-SA license https://creativecommons.org/licenses/by-sa/4.0/
 
--- PRESENTATION FLOW
--- Introduction to Konnakol (Mainly the Suladi Sapta thala system)
--- Korvai and Mohra (basic structure)
--- How I have stored the data
--- Flex diagrams, and composition generation
--- Main flex(tidalCycles)
--- The sequence part in Konnakol
+
