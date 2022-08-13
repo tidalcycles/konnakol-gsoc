@@ -11,7 +11,7 @@ To understand the datatypes and functions used, visit [here](HOW_TO_USE.md)
 
 To look at sample diagrams generated, visit [here](samplediags/)
 
-To launch a code and make music: [Visualising Konnakol Compositions - GSoC '22 Update 2](https://dev.to/aravindmohandas/visualising-konnakol-compositions-gsoc-22-update-2-16pc)
+To launch a code and make music: [Visualising Konnakol Compositions - GSoC '22 Update 2](https://dev.to/aravindmohandas/visualising-konnakol-compositions-gsoc-22-update-2-16pc). (NB: load [audiofiles](audiofiles) with SC's startup file to hear sound)
 
 ## Audio Samples
 
