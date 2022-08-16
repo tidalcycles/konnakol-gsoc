@@ -87,6 +87,35 @@ instance Show Syllable where
     show Nu = "Nu"
     show Di = "Di"
 
+-- | Define instance of enum class by enumerating each Jati / Gati to be the number of beats they represent
+instance Enum Syllable where
+  fromEnum a
+    | a == Tha = 2
+    | a ==  Ki = 3
+    | a == Ta = 4
+    | a == Dhi = 5
+    | a == Gi = 6
+    | a == Jho = 7
+    | a == Na = 8
+    | a == Thom = 9
+    | a == Lan = 10
+    | a ==  Gu = 11
+    | a == Dhin = 12
+    | a == Ku = 13
+    | a ==  Ri = 14
+    | a ==  Ka = 15
+    | a ==  Tham = 16
+    | a ==  Thak = 17
+    | a ==  Dhim = 18
+    | a ==  Nam = 19
+    | a == Mi = 20
+    | a == Nu = 21
+    | a == Gdot  = 1
+    | otherwise = 22
+  toEnum a
+    | a == 1 = Gdot
+    | otherwise = Gdot
+
 -- | Define phrase as a collection of syllables, to faciliate show instance
 newtype Phrase = Phr [Syllable]
 
@@ -617,5 +646,43 @@ finalDTSeq s (T thala) arr n cPB=
 
 
 -- Mridangam samples (c) Arthur Carabott, distributed under a CC-BY-SA license https://creativecommons.org/licenses/by-sa/4.0/
+
+-- | Representing Compositions with changing speeds
+getRTNum:: [Comp] -> JatiGati ->Thala ->Int->String
+getRTNum ((K x):y:xs) jati thala pos  =
+     let (a,b) = getSCTNum y jati thala (K x) pos
+     in a ++ getRTNum xs jati thala b
+getRTNum _ _ _ _ =""
+
+-- | Driver function for getting a virtual representation of a composition, after validation
+getSCTNum :: Comp->JatiGati->Thala->Comp->Int-> (String, Int)
+getSCTNum (C k) jati (T thala) (K gati) pos =
+    let maxS = maximum $ map snd k
+        countPerBeat = getCountPerBeat gati maxS
+        b = calculateCount jati (T thala)
+        countPerAvarta = countPerBeat * b
+        a = convToList k countPerBeat gati
+        d =
+         --if mod (length a) countPerBeat == 0 then
+            let c = replicate (calculateCount jati (T thala)) countPerBeat
+                e = getThalaSplitPoints jati (T thala)
+                in (finalDTNum a (T thala) c pos countPerBeat e, pos + div (mod (length a) countPerAvarta) countPerBeat )
+         --else ("Error", 0)
+    in d
+getSCTNum _ _ _ _ _ = ("",0)
+
+
+
+-- | Final display of a thala in lines with proper subdivisions
+finalDTNum :: [Syllable] ->Thala -> [Int] -> Int ->Int->[String]-> String
+finalDTNum s (T thala) arr n cPB e =
+    if null s then ""
+    else let pos = mod n (length arr)
+        in "[" ++ showNum (take cPB s) ++"] " ++ finalDTNum (drop (arr !! pos) s) (T thala) arr (n+1) cPB e
+
+showNum :: [Syllable] -> String
+showNum [] = ""
+showNum (x:xs) = show (fromEnum x) ++ " " ++ showNum xs
+
 
 
