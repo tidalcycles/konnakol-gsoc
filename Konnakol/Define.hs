@@ -622,31 +622,6 @@ finalDTSeq s (T thala) arr n cPB=
     else let pos = mod n (length arr)
         in  take cPB s : finalDTSeq (drop (arr !! pos) s) (T thala) arr (n+1) cPB
 
--- | Function which takes a list of list of syllables and converts each list to a Sequence 
--- getSeqfromKon :: [[Syllable]] -> Rational  -> [Sequence Syllable]
--- getSeqfromKon [] _  = []
--- getSeqfromKon (x:xs) durat =
---     let y = durat / realToFrac (length x)
---         a = map (\t -> if t == Gdot then Gap y else Atom y t) x
---     in Sequence a : getSeqfromKon xs durat
-
--- -- | Function to return a desired Korvai in Sequence notation
--- sequenceK :: JatiGati -> Thala -> JatiGati -> StdGen ->Sequence Syllable
--- sequenceK jati thala gati gen =
---     let x = getSeqRep [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed gati - 1)]] jati thala 0
---         y = getSeqfromKon x 1
---     in Sequence.unwrap $ Sequence y
-
--- -- | Function to return a desired Mohra in Sequence notation
--- sequenceM :: JatiGati -> Thala -> JatiGati -> StdGen -> Sequence Syllable
--- sequenceM jati thala gati gen =
---     let x = getSeqRep [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati - 1)]] jati thala 0
---         y = getSeqfromKon x 1
---     in Sequence.unwrap $ Sequence y
-
-
--- Mridangam samples (c) Arthur Carabott, distributed under a CC-BY-SA license https://creativecommons.org/licenses/by-sa/4.0/
-
 -- | Representing Compositions with changing speeds
 getRTNum:: [Comp] -> JatiGati ->Thala ->Int->String
 getRTNum ((K x):y:xs) jati thala pos  =
@@ -671,8 +646,6 @@ getSCTNum (C k) jati (T thala) (K gati) pos =
     in d
 getSCTNum _ _ _ _ _ = ("",0)
 
-
-
 -- | Final display of a thala in lines with proper subdivisions
 finalDTNum :: [Syllable] ->Thala -> [Int] -> Int ->Int->[String]-> String
 finalDTNum s (T thala) arr n cPB e =
@@ -684,5 +657,18 @@ showNum :: [Syllable] -> String
 showNum [] = ""
 showNum (x:xs) = show (fromEnum x) ++ " " ++ showNum xs
 
+-- | Function to return a desired Korvai in enumerated mini-notation
+numK :: JatiGati -> Thala -> JatiGati -> StdGen ->Pattern String ->ControlPattern
+numK jati thala gati gen sc=
+    let x = getRTNum [K gati, C[(fst(genKorvai jati thala gati gen), getMohraSpeed gati - 1)]] jati thala 0
+        y = (length.filter (=='[') ) x
+    in note (scale sc $ slow (fromInteger $ toInteger y) ( fromString x))
+
+-- | Function to return a desired Mohra in enumerated mini-notation
+numM :: JatiGati -> Thala -> JatiGati -> StdGen ->Pattern String -> ControlPattern
+numM jati thala gati gen sc =
+    let x = getRTNum [K gati, C [(genMohra jati thala gati gen, getMohraSpeed gati - 1)]] jati thala 0
+        y = (length.filter (=='[') ) x
+    in note (scale sc $ slow (fromInteger $ toInteger y) ( fromString x))
 
 
