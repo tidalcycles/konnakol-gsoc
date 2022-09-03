@@ -621,7 +621,7 @@ finalDTSeq s (T thala) arr n cPB=
     if null s then [[]]
     else let pos = mod n (length arr)
         in  take cPB s : finalDTSeq (drop (arr !! pos) s) (T thala) arr (n+1) cPB
-
+   
 -- | Representing Compositions with changing speeds
 getRTNum:: [Comp] -> JatiGati ->Thala ->Int->String
 getRTNum ((K x):y:xs) jati thala pos  =
